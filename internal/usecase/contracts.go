@@ -49,3 +49,15 @@ type ServiceGLBUseCase interface {
 	EnsureServiceGLBUseCase(ctx context.Context, req ctrl.Request) error
 	DeleteServiceGLBUseCase(ctx context.Context, req ctrl.Request) error
 }
+
+// ALBGatewayUseCase reconciles a single Gateway (and the vngcloud LB it owns) plus the
+// HTTPRoutes attached to it. The Gateway controller is the only writer to the LB;
+// HTTPRoute reconciles enqueue the parent Gateway via EnqueueParentGatewayForRoute.
+type ALBGatewayUseCase interface {
+	InitALBGatewayUseCase(ctx context.Context) error
+	EnsureALBGatewayUseCase(ctx context.Context, req ctrl.Request) error
+	DeleteALBGatewayUseCase(ctx context.Context, req ctrl.Request) error
+	// EnqueueParentGatewayForRoute is called by the HTTPRoute reconciler when a route
+	// changes; it triggers a Gateway reconcile for each parentRef. Idempotent.
+	EnqueueParentGatewayForRoute(ctx context.Context, routeRef ctrl.Request) error
+}
