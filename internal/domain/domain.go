@@ -18,6 +18,9 @@ const (
 	NsgFinalizer        = "nsg.vngcloud.vn/resources"
 	VglbFinalizer       = "glb.vngcloud.vn/resources"
 	ServiceGLBFinalizer = "glb.vks.vngcloud.vn/resources"
+
+	GatewayFinalizer      = "gateway.vks.vngcloud.vn/resources"
+	GatewayRouteFinalizer = "gateway.vks.vngcloud.vn/route"
 )
 
 // Annotations
@@ -26,6 +29,7 @@ const (
 	INGRESS_ANNOTATION_PREFIX = "vks.vngcloud.vn"
 	VGLB_ANNOTATION_PREFIX    = "vks.vngcloud.vn"
 	GLB_ANNOTATION_PREFIX     = "glb.vks.vngcloud.vn"
+	GATEWAY_API_PREFIX        = "gateway.vks.vngcloud.vn"
 )
 
 // CRD kind names (K8s strips TypeMeta from objects returned by Get; use these constants
@@ -33,6 +37,15 @@ const (
 const (
 	KindVngcloudGlobalLoadBalancer = "VngcloudGlobalLoadBalancer"
 	KindService                    = "Service"
+	KindGateway                    = "Gateway"
+	KindGatewayClass               = "GatewayClass"
+	KindHTTPRoute                  = "HTTPRoute"
+)
+
+// Gateway API controller names — must match GatewayClass.spec.controllerName.
+const (
+	ControllerNameALB = "gateway.vks.vngcloud.vn/alb"
+	ControllerNameNLB = "gateway.vks.vngcloud.vn/nlb"
 )
 
 // Labels
@@ -44,6 +57,9 @@ const (
 	// LabelNodeExcludeLB specifies that a node should not be used to create a Loadbalancer on
 	// https://github.com/kubernetes/cloud-provider/blob/25867882d509131a6fdeaf812ceebfd0f19015dd/controllers/service/controller.go#L673
 	LabelNodeExcludeLB = "node.kubernetes.io/exclude-from-external-load-balancers"
+
+	// LabelGatewayOwnerUID identifies vngcloud resources owned by a specific Gateway.
+	LabelGatewayOwnerUID = "gateway.vks.vngcloud.vn/owner-uid"
 )
 
 const (
