@@ -1,0 +1,336 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: targetgroupconfigs.gateway.vks.vngcloud.vn
+spec:
+  group: gateway.vks.vngcloud.vn
+  names:
+    kind: TargetGroupConfig
+    listKind: TargetGroupConfigList
+    plural: targetgroupconfigs
+    shortNames:
+    - tgc
+    singular: targetgroupconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: TargetGroupConfig is the Schema for the targetgroupconfigs API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TargetGroupConfigSpec defines the desired state of TargetGroupConfig.
+            properties:
+              defaultConfig:
+                description: |-
+                  DefaultConfig applies when this TGC is selected via targetReference and no
+                  routeConfiguration overrides match the active route.
+                properties:
+                  enableProxyProtocol:
+                    description: 'EnableProxyProtocol: enables PROXY-protocol for
+                      L4/L7 backend.'
+                    type: boolean
+                  enableStickySession:
+                    description: EnableStickySession enables session persistence on
+                      the pool.
+                    type: boolean
+                  enableTLSEncryption:
+                    description: 'EnableTLSEncryption: speak HTTPS to backend (pool
+                      TLS).'
+                    type: boolean
+                  healthCheck:
+                    description: HealthCheck configures the pool's health monitor.
+                    properties:
+                      domainName:
+                        description: DomainName is the hostname sent in the HTTP Host
+                          header
+                        type: string
+                      healthCheckMethod:
+                        description: HealthCheckMethod specifies how the health check
+                          request is made (e.g., GET, TCP)
+                        type: string
+                      healthCheckPath:
+                        description: HealthCheckPath is the path used for HTTP health
+                          checks
+                        type: string
+                      healthyThreshold:
+                        description: HealthyThreshold is the number of consecutive
+                          successful checks before marking healthy
+                        type: integer
+                      httpVersion:
+                        description: HttpVersion defines which HTTP version to use
+                          for HTTP-based health checks
+                        type: string
+                      interval:
+                        description: Interval is the time in seconds between each
+                          health check
+                        type: integer
+                      protocol:
+                        description: Protocol is the protocol used for health checks
+                        type: string
+                      successCode:
+                        description: SuccessCode specifies which HTTP codes indicate
+                          a healthy response
+                        type: string
+                      timeout:
+                        description: Timeout is the maximum time in seconds to wait
+                          for a response
+                        type: integer
+                      unhealthyThreshold:
+                        description: UnhealthyThreshold is the number of consecutive
+                          failed checks before marking unhealthy
+                        type: integer
+                    required:
+                    - protocol
+                    type: object
+                  manageDFPMembers:
+                    description: ManageDFPMembers controls whether the controller
+                      manages "default-forwarding-pool" members.
+                    type: boolean
+                  poolAlgorithm:
+                    description: 'PoolAlgorithm: ROUND_ROBIN, LEAST_CONNECTIONS, SOURCE_IP,
+                      etc. (vngcloud values).'
+                    type: string
+                  targetNodeLabels:
+                    additionalProperties:
+                      type: string
+                    description: TargetNodeLabels restricts which nodes are pool members
+                      (instance-mode only).
+                    type: object
+                  targetType:
+                    description: 'TargetType: "instance" (NodePort-routed) or "ip"
+                      (pod-direct, requires Cilium native routing).'
+                    enum:
+                    - instance
+                    - ip
+                    type: string
+                type: object
+              routeConfigurations:
+                description: |-
+                  RouteConfigurations carries per-route overrides selected by route GVK + name (and
+                  optional rule name). Highest specificity wins (route+rule > route > default).
+                items:
+                  description: RouteSpecificConfig overrides DefaultConfig for a specific
+                    route (and optional rule).
+                  properties:
+                    config:
+                      description: Config to apply for the matched route / rule.
+                      properties:
+                        enableProxyProtocol:
+                          description: 'EnableProxyProtocol: enables PROXY-protocol
+                            for L4/L7 backend.'
+                          type: boolean
+                        enableStickySession:
+                          description: EnableStickySession enables session persistence
+                            on the pool.
+                          type: boolean
+                        enableTLSEncryption:
+                          description: 'EnableTLSEncryption: speak HTTPS to backend
+                            (pool TLS).'
+                          type: boolean
+                        healthCheck:
+                          description: HealthCheck configures the pool's health monitor.
+                          properties:
+                            domainName:
+                              description: DomainName is the hostname sent in the
+                                HTTP Host header
+                              type: string
+                            healthCheckMethod:
+                              description: HealthCheckMethod specifies how the health
+                                check request is made (e.g., GET, TCP)
+                              type: string
+                            healthCheckPath:
+                              description: HealthCheckPath is the path used for HTTP
+                                health checks
+                              type: string
+                            healthyThreshold:
+                              description: HealthyThreshold is the number of consecutive
+                                successful checks before marking healthy
+                              type: integer
+                            httpVersion:
+                              description: HttpVersion defines which HTTP version
+                                to use for HTTP-based health checks
+                              type: string
+                            interval:
+                              description: Interval is the time in seconds between
+                                each health check
+                              type: integer
+                            protocol:
+                              description: Protocol is the protocol used for health
+                                checks
+                              type: string
+                            successCode:
+                              description: SuccessCode specifies which HTTP codes
+                                indicate a healthy response
+                              type: string
+                            timeout:
+                              description: Timeout is the maximum time in seconds
+                                to wait for a response
+                              type: integer
+                            unhealthyThreshold:
+                              description: UnhealthyThreshold is the number of consecutive
+                                failed checks before marking unhealthy
+                              type: integer
+                          required:
+                          - protocol
+                          type: object
+                        manageDFPMembers:
+                          description: ManageDFPMembers controls whether the controller
+                            manages "default-forwarding-pool" members.
+                          type: boolean
+                        poolAlgorithm:
+                          description: 'PoolAlgorithm: ROUND_ROBIN, LEAST_CONNECTIONS,
+                            SOURCE_IP, etc. (vngcloud values).'
+                          type: string
+                        targetNodeLabels:
+                          additionalProperties:
+                            type: string
+                          description: TargetNodeLabels restricts which nodes are
+                            pool members (instance-mode only).
+                          type: object
+                        targetType:
+                          description: 'TargetType: "instance" (NodePort-routed) or
+                            "ip" (pod-direct, requires Cilium native routing).'
+                          enum:
+                          - instance
+                          - ip
+                          type: string
+                      type: object
+                    routeIdentifier:
+                      description: RouteIdentifier scopes this override.
+                      properties:
+                        group:
+                          description: Group of the route (e.g., "gateway.networking.k8s.io").
+                          type: string
+                        kind:
+                          description: Kind of the route (e.g., "HTTPRoute", "TCPRoute").
+                          type: string
+                        name:
+                          description: Name of the route.
+                          type: string
+                        namespace:
+                          description: Namespace of the route. Defaults to the TGC's
+                            namespace.
+                          type: string
+                        ruleName:
+                          description: RuleName matches the route's spec.rules[].name
+                            when set.
+                          type: string
+                      required:
+                      - group
+                      - kind
+                      - name
+                      type: object
+                  required:
+                  - config
+                  - routeIdentifier
+                  type: object
+                type: array
+              targetReference:
+                description: TargetReference points at the backend Service this configuration
+                  applies to.
+                properties:
+                  group:
+                    description: Group of the target. Defaults to "" (core).
+                    type: string
+                  kind:
+                    description: Kind of the target. Defaults to "Service".
+                    type: string
+                  name:
+                    description: Name of the target.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - defaultConfig
+            - targetReference
+            type: object
+          status:
+            description: TargetGroupConfigStatus defines the observed state of TargetGroupConfig.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
