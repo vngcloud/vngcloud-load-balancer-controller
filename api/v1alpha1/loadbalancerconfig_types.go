@@ -283,6 +283,16 @@ type Listener struct {
 	// ClientCertificateId is the client certificate Id for mutual TLS
 	// +optional
 	ClientCertificateId *string `json:"clientCertificateId,omitempty"`
+
+	// SSLPolicy selects the listener's TLS protocol/cipher policy (vngcloud-defined).
+	// Only honored on HTTPS / TLS-terminate listeners.
+	// +optional
+	SSLPolicy *string `json:"sslPolicy,omitempty"`
+
+	// ALPNPolicy controls ALPN advertisement (e.g., "HTTP2Optional", "HTTP1Only").
+	// Only honored on HTTPS / TLS-terminate listeners.
+	// +optional
+	ALPNPolicy *string `json:"alpnPolicy,omitempty"`
 }
 
 // ListenerCertificate defines a certificate associated with a listener, can be referenced by ID, name, or secret name. Must provide at least one.
@@ -388,7 +398,24 @@ type LoadBalancerConfigSpec struct {
 	// +listType=map
 	// +listMapKey=secretName
 	CreateCertificates []CreateCertificate `json:"createCertificates,omitempty"`
+
+	// MergingMode controls how this LBC merges with another LBC when both
+	// GatewayClass.parametersRef and Gateway.spec.infrastructure.parametersRef are set.
+	// Only honored when this object is referenced by GatewayClass.parametersRef.
+	// Defaults to PreferGateway.
+	// +optional
+	// +kubebuilder:validation:Enum=PreferGateway;PreferGatewayClass
+	MergingMode *MergingMode `json:"mergingMode,omitempty"`
 }
+
+// MergingMode controls how a GatewayClass-level LoadBalancerConfig merges with a
+// Gateway-level one. Only honored when this LBC is referenced by GatewayClass.parametersRef.
+type MergingMode string
+
+const (
+	MergingModePreferGateway      MergingMode = "PreferGateway"
+	MergingModePreferGatewayClass MergingMode = "PreferGatewayClass"
+)
 
 type CreateCertificate struct {
 	// SecretName is the name of the Kubernetes secret containing the certificate

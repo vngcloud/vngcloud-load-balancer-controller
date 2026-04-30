@@ -99,6 +99,11 @@ spec:
                     allowedCidrs:
                       description: AllowedCidrs defines the allowed CIDR blocks
                       type: string
+                    alpnPolicy:
+                      description: |-
+                        ALPNPolicy controls ALPN advertisement (e.g., "HTTP2Optional", "HTTP1Only").
+                        Only honored on HTTPS / TLS-terminate listeners.
+                      type: string
                     certificateAuthorities:
                       description: CertificateAuthorities is a list of certificate
                         authorities for mutual TLS (for L7)
@@ -248,6 +253,11 @@ spec:
                       maximum: 65535
                       minimum: 1
                       type: integer
+                    sslPolicy:
+                      description: |-
+                        SSLPolicy selects the listener's TLS protocol/cipher policy (vngcloud-defined).
+                        Only honored on HTTPS / TLS-terminate listeners.
+                      type: string
                     timeoutClient:
                       description: TimeoutClient is the client timeout in seconds
                       format: int32
@@ -277,6 +287,16 @@ spec:
                 description: |-
                   General fields for all load balancers
                   LoadBalancerName is the name of the load balancer (only set via annotation)
+                type: string
+              mergingMode:
+                description: |-
+                  MergingMode controls how this LBC merges with another LBC when both
+                  GatewayClass.parametersRef and Gateway.spec.infrastructure.parametersRef are set.
+                  Only honored when this object is referenced by GatewayClass.parametersRef.
+                  Defaults to PreferGateway.
+                enum:
+                - PreferGateway
+                - PreferGatewayClass
                 type: string
               packageId:
                 description: PackageId is the size/package of the load balancer
