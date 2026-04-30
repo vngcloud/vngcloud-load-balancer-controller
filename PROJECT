@@ -52,4 +52,22 @@ resources:
   kind: GlobalLoadBalancerConfig
   path: github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: vks.vngcloud.vn
+  group: gateway
+  kind: TargetGroupConfig
+  path: github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: vks.vngcloud.vn
+  group: gateway
+  kind: ListenerRuleConfig
+  path: github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1
+  version: v1alpha1
 version: "3"
