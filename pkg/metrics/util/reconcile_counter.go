@@ -8,13 +8,15 @@ import (
 )
 
 type ReconcileCounters struct {
-	serviceReconciles map[types.NamespacedName]int
-	ingressReconciles map[types.NamespacedName]int
-	lbcReconciles     map[types.NamespacedName]int
-	glbcReconciles    map[types.NamespacedName]int
-	nsgReconciles     map[types.NamespacedName]int
-	vglbReconciles    map[types.NamespacedName]int
-	mutex             sync.Mutex
+	serviceReconciles   map[types.NamespacedName]int
+	ingressReconciles   map[types.NamespacedName]int
+	lbcReconciles       map[types.NamespacedName]int
+	glbcReconciles      map[types.NamespacedName]int
+	nsgReconciles       map[types.NamespacedName]int
+	vglbReconciles      map[types.NamespacedName]int
+	gatewayReconciles   map[types.NamespacedName]int
+	httpRouteReconciles map[types.NamespacedName]int
+	mutex               sync.Mutex
 }
 
 type ResourceReconcileCount struct {
@@ -29,9 +31,23 @@ func NewReconcileCounters() *ReconcileCounters {
 		lbcReconciles:     make(map[types.NamespacedName]int),
 		glbcReconciles:    make(map[types.NamespacedName]int),
 		nsgReconciles:     make(map[types.NamespacedName]int),
-		vglbReconciles:    make(map[types.NamespacedName]int),
-		mutex:             sync.Mutex{},
+		vglbReconciles:      make(map[types.NamespacedName]int),
+		gatewayReconciles:   make(map[types.NamespacedName]int),
+		httpRouteReconciles: make(map[types.NamespacedName]int),
+		mutex:               sync.Mutex{},
 	}
+}
+
+func (c *ReconcileCounters) IncrementGateway(namespaceName types.NamespacedName) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.gatewayReconciles[namespaceName]++
+}
+
+func (c *ReconcileCounters) IncrementHTTPRoute(namespaceName types.NamespacedName) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.httpRouteReconciles[namespaceName]++
 }
 
 func (c *ReconcileCounters) IncrementService(namespaceName types.NamespacedName) {
@@ -104,4 +120,6 @@ func (c *ReconcileCounters) ResetCounter() {
 	c.glbcReconciles = make(map[types.NamespacedName]int)
 	c.nsgReconciles = make(map[types.NamespacedName]int)
 	c.vglbReconciles = make(map[types.NamespacedName]int)
+	c.gatewayReconciles = make(map[types.NamespacedName]int)
+	c.httpRouteReconciles = make(map[types.NamespacedName]int)
 }
