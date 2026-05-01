@@ -1,0 +1,51 @@
+// Package listenerruleconfig validates ListenerRuleConfig CRDs and reports observability
+// status. It does not write to vngcloud — additional matches and actions are consumed
+// by the Gateway use-case at policy-build time via shared.ExtractLRCRefsFromFilters.
+package listenerruleconfig
+
+import (
+	"context"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
+	ctlshared "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/shared"
+)
+
+// +kubebuilder:rbac:groups=gateway.vks.vngcloud.vn,resources=listenerruleconfigs,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=gateway.vks.vngcloud.vn,resources=listenerruleconfigs/status,verbs=update;patch
+
+// Reconciler validates schema and reports Accepted=True.
+type Reconciler struct {
+	client.Client
+	Scheme *runtime.Scheme
+}
+
+func New(c client.Client, sch *runtime.Scheme) *Reconciler {
+	return &Reconciler{Client: c, Scheme: sch}
+}
+
+func (r *Reconciler) SetupWithManager(mgr manager.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&gatewayv1alpha1.ListenerRuleConfig{}).
+		Named("listenerruleconfig").
+		Complete(r)
+}
+
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	obj := &gatewayv1alpha1.ListenerRuleConfig{}
+	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if obj.Status.ObservedGeneration == obj.Generation {
+		return ctrl.Result{}, nil
+	}
+	ctlshared.SetCondition(&obj.Status.Conditions, "Accepted",
+		metav1.ConditionTrue, "Accepted", "ListenerRuleConfig observed", obj.Generation)
+	obj.Status.ObservedGeneration = obj.Generation
+	return ctrl.Result{}, r.Status().Update(ctx, obj)
+}
