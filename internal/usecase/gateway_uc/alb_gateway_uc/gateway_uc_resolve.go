@@ -86,6 +86,7 @@ func (uc *albGatewayUseCase) resolveGatewayBuild(ctx context.Context, req ctrl.R
 		listeners = append(listeners, *built)
 	}
 	lbSpec.Listeners = listeners
+	lbSpec.CreateCertificates = collectCreateCertificates(gw)
 
 	return &resolvedGatewayBuild{
 		gateway:   gw,
@@ -94,6 +95,46 @@ func (uc *albGatewayUseCase) resolveGatewayBuild(ctx context.Context, req ctrl.R
 		invalid:   invalid,
 		lbSpec:    lbSpec,
 	}, nil
+}
+
+// collectCreateCertificates pulls every distinct same-namespace TLS Secret name
+// from Gateway.spec.listeners[].tls.certificateRefs into a CreateCertificate list.
+// lbc_uc imports each entry into a vngcloud certificate before listener apply;
+// without this list the deploy step errors out with "secret not found in created
+// certificates" even though the ListenerCertificate object references the secret.
+//
+// Cross-namespace certificateRefs (gated by ReferenceGrant) require a separate
+// resolution pass and are not handled here yet.
+func collectCreateCertificates(gw *gwv1.Gateway) []vksv1alpha1.CreateCertificate {
+	seen := map[string]struct{}{}
+	out := []vksv1alpha1.CreateCertificate{}
+	for _, l := range gw.Spec.Listeners {
+		if l.TLS == nil {
+			continue
+		}
+		for _, ref := range l.TLS.CertificateRefs {
+			if ref.Group != nil && *ref.Group != "" {
+				continue
+			}
+			if ref.Kind != nil && *ref.Kind != "Secret" {
+				continue
+			}
+			if ref.Namespace != nil && string(*ref.Namespace) != gw.Namespace {
+				// cross-ns: deferred (Phase 1 same-ns only here)
+				continue
+			}
+			name := string(ref.Name)
+			if _, dup := seen[name]; dup {
+				continue
+			}
+			seen[name] = struct{}{}
+			out = append(out, vksv1alpha1.CreateCertificate{SecretName: name})
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func (uc *albGatewayUseCase) lookupClassLBC(ctx context.Context, ref *gwv1.ParametersReference) (*vksv1alpha1.LoadBalancerConfigSpec, error) {

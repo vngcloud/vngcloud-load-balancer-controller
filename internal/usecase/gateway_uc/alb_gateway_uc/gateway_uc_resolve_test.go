@@ -140,7 +140,8 @@ func TestResolve_InvalidListener_IsSkipped(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	assert.Len(t, res.lbSpec.Listeners, 1)
-	assert.Equal(t, "good", res.lbSpec.Listeners[0].Name)
+	// "good" is 4 chars; vngcloud requires ≥5, so build_listener prefixes "gw-".
+	assert.Equal(t, "gw-good", res.lbSpec.Listeners[0].Name)
 }
 
 func TestResolve_BadGroupKind_OnClassRef_ReturnsError(t *testing.T) {

@@ -21,6 +21,11 @@ import (
 func TestMarkAcceptedAndProgrammed_SetsBothConditions(t *testing.T) {
 	k8s := repomocks.NewMockK8sRepository(t)
 
+	// gatherGatewayAddresses lists owned LBCs; this test cares about conditions only,
+	// so return an empty list (nil error).
+	k8s.EXPECT().ListLoadBalancerConfig(mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Maybe()
+
 	var captured *gwv1.Gateway
 	k8s.EXPECT().PatchMutateStatusGateway(mock.Anything, mock.Anything, mock.Anything).
 		Run(func(_ context.Context, gw *gwv1.Gateway, mutate func(context.Context, *gwv1.Gateway) bool) {

@@ -8,6 +8,7 @@ import (
 	"github.com/anngdinh/operator-helper/contexts"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -88,6 +89,37 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger := contexts.NewContext(ctx).Log()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
+
+	gw := &gwv1.Gateway{}
+	if err := r.Client.Get(ctx, req.NamespacedName, gw); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Only manage finalizers for Gateways that belong to our class. Foreign Gateways
+	// (different controllerName, or class missing) are ignored — adding our finalizer
+	// to them would block deletion forever.
+	gwc := &gwv1.GatewayClass{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: string(gw.Spec.GatewayClassName)}, gwc); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if string(gwc.Spec.ControllerName) != domain.ControllerNameALB {
+		return ctrl.Result{}, nil
+	}
+
+	if !gw.DeletionTimestamp.IsZero() {
+		// Delete path: tear down resources, then remove finalizer.
+		if err := r.GatewayUseCase.DeleteALBGatewayUseCase(ctx, req); err != nil {
+			return errs.HandleReconcileError(err, logger)
+		}
+		if err := r.FinalizerManager.RemoveFinalizers(ctx, gw, domain.GatewayFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.FinalizerManager.AddFinalizers(ctx, gw, domain.GatewayFinalizer); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return errs.HandleReconcileError(r.GatewayUseCase.EnsureALBGatewayUseCase(ctx, req), logger)
 }

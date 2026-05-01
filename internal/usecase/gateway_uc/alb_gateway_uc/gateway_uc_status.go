@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
+	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	ctlshared "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/shared"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 )
@@ -23,10 +24,11 @@ import (
 const AnnotationRouteRevision = "gateway.vks.vngcloud.vn/route-revision"
 
 // markAcceptedAndProgrammed writes the standard gateway-api positive
-// conditions after a successful reconcile. It does not touch addresses or
-// per-listener status — those need data the lbc_uc deploy path produces
-// asynchronously and are deferred to a follow-up.
+// conditions after a successful reconcile. Addresses are populated from
+// the most-recently-deployed LoadBalancerConfig (the LBC reconciler fills
+// in status.address asynchronously once vngcloud assigns one).
 func (uc *albGatewayUseCase) markAcceptedAndProgrammed(ctx context.Context, gw *gwv1.Gateway) error {
+	addrs := uc.gatherGatewayAddresses(ctx, gw)
 	return uc.k8sRepo.PatchMutateStatusGateway(ctx, gw, func(_ context.Context, fresh *gwv1.Gateway) bool {
 		ctlshared.SetCondition(&fresh.Status.Conditions,
 			string(gwv1.GatewayConditionAccepted), metav1.ConditionTrue,
@@ -40,8 +42,46 @@ func (uc *albGatewayUseCase) markAcceptedAndProgrammed(ctx context.Context, gw *
 			"LoadBalancerConfig deployed",
 			fresh.Generation,
 		)
+		fresh.Status.Addresses = addrs
 		return true
 	})
+}
+
+// gatherGatewayAddresses reads the owned LoadBalancerConfig(s) and returns
+// the Gateway-API status address list. Returns nil when no LBC is reachable
+// or none has produced an address yet — the caller leaves the field empty
+// (Programmed=True still indicates "config deployed", regardless of address
+// availability — vngcloud LB warm-up is async).
+func (uc *albGatewayUseCase) gatherGatewayAddresses(ctx context.Context, gw *gwv1.Gateway) []gwv1.GatewayStatusAddress {
+	logger := contexts.NewContext(ctx).Log()
+
+	lbcList := &v1alpha1.LoadBalancerConfigList{}
+	if err := uc.k8sRepo.ListLoadBalancerConfig(ctx, lbcList,
+		client.InNamespace(gw.Namespace),
+		client.MatchingLabels{
+			domain.LabelOwnerResourceName: gw.Name,
+			domain.LabelOwnerResourceKind: gw.Kind,
+			domain.LabelOwnerResourceUid:  string(gw.UID),
+		}); err != nil {
+		logger.Warnf("listing LBCs for address propagation: %v", err)
+		return nil
+	}
+
+	out := make([]gwv1.GatewayStatusAddress, 0, len(lbcList.Items))
+	seen := map[string]struct{}{}
+	for i := range lbcList.Items {
+		addr := lbcList.Items[i].Status.Address
+		if addr == nil || *addr == "" {
+			continue
+		}
+		if _, dup := seen[*addr]; dup {
+			continue
+		}
+		seen[*addr] = struct{}{}
+		t := gwv1.IPAddressType
+		out = append(out, gwv1.GatewayStatusAddress{Type: &t, Value: *addr})
+	}
+	return out
 }
 
 // EnqueueParentGatewayForRoute fires a synthetic re-reconcile of every

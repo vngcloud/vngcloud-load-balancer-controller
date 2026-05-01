@@ -48,7 +48,7 @@ func TestResolveBackend_SameNS_InstanceMode_Default(t *testing.T) {
 	k8s := repomocks.NewMockK8sRepository(t)
 	ep := utils.NewMockEndpointResolver(t)
 	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything,
-		types.NamespacedName{Namespace: "ns", Name: "svc"}, intstr.FromInt(80)).
+		types.NamespacedName{Namespace: "ns", Name: "svc"}, intstr.FromInt(80), mock.Anything).
 		Return([]utils.EndpointAddress{{IP: "10.0.0.1", Port: 30080}, {IP: "10.0.0.2", Port: 30080}}, nil)
 
 	uc := newALBUCWithResolver(k8s, ep)
@@ -65,7 +65,7 @@ func TestResolveBackend_TGCSwitchesToIPMode(t *testing.T) {
 	k8s := repomocks.NewMockK8sRepository(t)
 	ep := utils.NewMockEndpointResolver(t)
 	ep.EXPECT().ResolvePodEndpoints(mock.Anything,
-		types.NamespacedName{Namespace: "ns", Name: "svc"}, intstr.FromInt(8080)).
+		types.NamespacedName{Namespace: "ns", Name: "svc"}, intstr.FromInt(8080), mock.Anything).
 		Return([]utils.EndpointAddress{{IP: "10.244.0.1", Port: 8080}}, nil)
 
 	tgcs := []gatewayv1alpha1.TargetGroupConfig{{
@@ -107,7 +107,7 @@ func TestResolveBackend_CrossNS_WithGrant_Resolves(t *testing.T) {
 	k8s := repomocks.NewMockK8sRepository(t)
 	ep := utils.NewMockEndpointResolver(t)
 	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything,
-		types.NamespacedName{Namespace: "ns-svc", Name: "svc"}, intstr.FromInt(80)).
+		types.NamespacedName{Namespace: "ns-svc", Name: "svc"}, intstr.FromInt(80), mock.Anything).
 		Return([]utils.EndpointAddress{{IP: "1.1.1.1", Port: 30080}}, nil)
 
 	uc := newALBUCWithResolver(k8s, ep)
@@ -137,7 +137,7 @@ func TestResolveBackend_MissingPort_ReturnsError(t *testing.T) {
 
 func TestResolveBackend_NoEndpoints_ReturnsError(t *testing.T) {
 	ep := utils.NewMockEndpointResolver(t)
-	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything).
+	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil)
 
 	uc := newALBUCWithResolver(repomocks.NewMockK8sRepository(t), ep)

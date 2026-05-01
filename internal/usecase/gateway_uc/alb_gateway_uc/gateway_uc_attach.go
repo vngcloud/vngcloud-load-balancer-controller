@@ -133,9 +133,15 @@ func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gate
 	return nil
 }
 
-func findGatewayListenerByName(listeners []gwv1.Listener, name string) *gwv1.Listener {
+// findGatewayListenerByName matches an LBC listener back to its source Gateway
+// listener. The name passed in is the *vngcloud* listener name produced by
+// build_listener.vngcloudListenerName, which may differ from the Gateway listener
+// name (short Gateway names get a "gw-" prefix to clear vngcloud's 5-char floor).
+// We compare against both forms so the lookup survives that munging.
+func findGatewayListenerByName(listeners []gwv1.Listener, vngcloudName string) *gwv1.Listener {
 	for i := range listeners {
-		if string(listeners[i].Name) == name {
+		raw := string(listeners[i].Name)
+		if raw == vngcloudName || vngcloudListenerName(raw) == vngcloudName {
 			return &listeners[i]
 		}
 	}

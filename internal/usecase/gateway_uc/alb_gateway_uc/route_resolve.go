@@ -77,9 +77,12 @@ func (uc *albGatewayUseCase) resolveBackend(
 		targetType = domain.TargetTypeIP
 	}
 
-	resolveOpts := []utils.EndpointResolveOption{}
-	if len(props.TargetNodeLabels) > 0 {
-		resolveOpts = append(resolveOpts, utils.WithNodeSelector(labels.SelectorFromSet(labels.Set(props.TargetNodeLabels))))
+	// Always pass a NodeSelector — the resolver's default is labels.Nothing()
+	// (matches zero nodes), so omitting the option silently yields zero endpoints.
+	// SelectorFromSet on an empty/nil map returns labels.Everything(), which is
+	// what we want when no TargetGroupConfig.TargetNodeLabels is specified.
+	resolveOpts := []utils.EndpointResolveOption{
+		utils.WithNodeSelector(labels.SelectorFromSet(labels.Set(props.TargetNodeLabels))),
 	}
 
 	svcKey := types.NamespacedName{Namespace: backendNS, Name: string(ref.Name)}

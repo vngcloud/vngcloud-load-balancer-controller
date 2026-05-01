@@ -1,7 +1,9 @@
 package alb_gateway_uc
 
 import (
+	"fmt"
 	"math"
+	"strings"
 
 	"k8s.io/utils/ptr"
 
@@ -60,11 +62,28 @@ func SynthesizeMembers(in []BackendEndpoints) []vksv1alpha1.PoolMember {
 		}
 		for _, ep := range b.Endpoints {
 			out = append(out, vksv1alpha1.PoolMember{
-				IP:     ep,
-				Port:   int(b.Backend.Port),
-				Weight: ptr.To(w),
+				Name:        memberName(ep, int(b.Backend.Port)),
+				IP:          ep,
+				Port:        int(b.Backend.Port),
+				MonitorPort: int(b.Backend.Port), // CRD-required; default health-check on traffic port
+				Weight:      ptr.To(w),
 			})
 		}
 	}
 	return out
+}
+
+// memberName derives a deterministic, vngcloud-acceptable PoolMember.Name from an
+// endpoint (IP, port). vngcloud requires names to match [a-zA-Z0-9_.-] and be 5-50
+// chars, so dots in IPs are replaced with dashes and the port is appended.
+//
+// Example: 10.0.100.3:32428 → "m-10-0-100-3-32428".
+func memberName(ip string, port int) string {
+	safe := strings.ReplaceAll(ip, ".", "-")
+	safe = strings.ReplaceAll(safe, ":", "-") // IPv6 zone separator, defensive
+	name := fmt.Sprintf("m-%s-%d", safe, port)
+	if len(name) > 50 {
+		name = name[:50]
+	}
+	return name
 }

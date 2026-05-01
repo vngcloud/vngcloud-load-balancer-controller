@@ -56,7 +56,7 @@ func TestAttachHTTPRoutes_HappyPath(t *testing.T) {
 	expectEmptyTGCAndLRC(k8s)
 
 	ep := utils.NewMockEndpointResolver(t)
-	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything).
+	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]utils.EndpointAddress{{IP: "1.1.1.1", Port: 30080}}, nil)
 
 	uc := newALBUCWithResolver(k8s, ep)
@@ -97,7 +97,7 @@ func TestAttachHTTPRoutes_DedupesPoolAcrossListeners(t *testing.T) {
 
 	ep := utils.NewMockEndpointResolver(t)
 	// Backend resolves twice (once per listener), but pool name is the same → dedup.
-	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything).
+	ep.EXPECT().ResolveNodePortEndpoints(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]utils.EndpointAddress{{IP: "1.1.1.1", Port: 30080}}, nil).Times(2)
 
 	uc := newALBUCWithResolver(k8s, ep)

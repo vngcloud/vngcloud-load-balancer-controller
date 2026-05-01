@@ -62,3 +62,19 @@ func TestBuildListener_UnsupportedProtocol_Errors(t *testing.T) {
 	_, err := BuildListener(l, nil, nil)
 	assert.Error(t, err)
 }
+
+func TestVngcloudListenerName(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"http", "gw-http"},        // 4 chars → prefix to clear 5-char floor
+		{"x", "gw-x"},              // very short → prefix
+		{"https", "https"},         // already ≥5 → unchanged
+		{"my-listener", "my-listener"}, // longer → unchanged
+	}
+	for _, c := range cases {
+		t.Run(c.in, func(t *testing.T) {
+			assert.Equal(t, c.want, vngcloudListenerName(c.in))
+		})
+	}
+}
