@@ -48,10 +48,10 @@ import (
 
 	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	vksvngcloudvnv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
+	corecontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/core"
 	albgw "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/alb"
 	gwlrc "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/listenerruleconfig"
 	gwtgc "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/targetgroupconfig"
-	corecontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/core"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/glbc_controller"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/lbc_controller"
 	networkingcontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/networking"
