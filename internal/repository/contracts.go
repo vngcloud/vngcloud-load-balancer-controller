@@ -13,7 +13,10 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
+	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 )
 
@@ -151,4 +154,17 @@ type K8sRepository interface {
 
 	GetVngcloudGlobalLoadBalancer(ctx context.Context, n types.NamespacedName) (*v1alpha1.VngcloudGlobalLoadBalancer, error)
 	PatchMutateStatusVngcloudGlobalLoadBalancer(ctx context.Context, vglb *v1alpha1.VngcloudGlobalLoadBalancer, mutateFunc func(ctx context.Context, obj *v1alpha1.VngcloudGlobalLoadBalancer) bool) error
+
+	// Gateway API (sigs.k8s.io/gateway-api)
+	GetGateway(ctx context.Context, n types.NamespacedName) (*gwv1.Gateway, error)
+	PatchMutateStatusGateway(ctx context.Context, gw *gwv1.Gateway, mutateFunc func(ctx context.Context, obj *gwv1.Gateway) bool) error
+	GetGatewayClass(ctx context.Context, name string) (*gwv1.GatewayClass, error)
+	PatchMutateStatusGatewayClass(ctx context.Context, gwc *gwv1.GatewayClass, mutateFunc func(ctx context.Context, obj *gwv1.GatewayClass) bool) error
+	ListHTTPRoute(ctx context.Context, list *gwv1.HTTPRouteList, opts ...client.ListOption) error
+	PatchMutateStatusHTTPRoute(ctx context.Context, route *gwv1.HTTPRoute, mutateFunc func(ctx context.Context, obj *gwv1.HTTPRoute) bool) error
+	ListReferenceGrant(ctx context.Context, list *gwv1beta1.ReferenceGrantList, opts ...client.ListOption) error
+
+	// vks gateway extension CRDs (api/gateway/v1alpha1)
+	ListTargetGroupConfig(ctx context.Context, list *gatewayv1alpha1.TargetGroupConfigList, opts ...client.ListOption) error
+	ListListenerRuleConfig(ctx context.Context, list *gatewayv1alpha1.ListenerRuleConfigList, opts ...client.ListOption) error
 }

@@ -14,11 +14,14 @@ import (
 	"github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/loadbalancer/inter"
 	"github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/loadbalancer/v2"
 	v20 "github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/network/v2"
+	v1alpha10 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
-	v11 "k8s.io/api/core/v1"
-	v10 "k8s.io/api/networking/v1"
+	v12 "k8s.io/api/core/v1"
+	v11 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	v10 "sigs.k8s.io/gateway-api/apis/v1"
+	"sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 // NewMockVngCloudRepository creates a new instance of MockVngCloudRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -4872,6 +4875,142 @@ func (_c *MockK8sRepository_DeleteNodeSecurityGroup_Call) RunAndReturn(run func(
 	return _c
 }
 
+// GetGateway provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) GetGateway(ctx context.Context, n types.NamespacedName) (*v10.Gateway, error) {
+	ret := _mock.Called(ctx, n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGateway")
+	}
+
+	var r0 *v10.Gateway
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v10.Gateway, error)); ok {
+		return returnFunc(ctx, n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v10.Gateway); ok {
+		r0 = returnFunc(ctx, n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*v10.Gateway)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, types.NamespacedName) error); ok {
+		r1 = returnFunc(ctx, n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockK8sRepository_GetGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGateway'
+type MockK8sRepository_GetGateway_Call struct {
+	*mock.Call
+}
+
+// GetGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - n types.NamespacedName
+func (_e *MockK8sRepository_Expecter) GetGateway(ctx interface{}, n interface{}) *MockK8sRepository_GetGateway_Call {
+	return &MockK8sRepository_GetGateway_Call{Call: _e.mock.On("GetGateway", ctx, n)}
+}
+
+func (_c *MockK8sRepository_GetGateway_Call) Run(run func(ctx context.Context, n types.NamespacedName)) *MockK8sRepository_GetGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 types.NamespacedName
+		if args[1] != nil {
+			arg1 = args[1].(types.NamespacedName)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_GetGateway_Call) Return(gateway *v10.Gateway, err error) *MockK8sRepository_GetGateway_Call {
+	_c.Call.Return(gateway, err)
+	return _c
+}
+
+func (_c *MockK8sRepository_GetGateway_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v10.Gateway, error)) *MockK8sRepository_GetGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGatewayClass provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) GetGatewayClass(ctx context.Context, name string) (*v10.GatewayClass, error) {
+	ret := _mock.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGatewayClass")
+	}
+
+	var r0 *v10.GatewayClass
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*v10.GatewayClass, error)); ok {
+		return returnFunc(ctx, name)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *v10.GatewayClass); ok {
+		r0 = returnFunc(ctx, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*v10.GatewayClass)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockK8sRepository_GetGatewayClass_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGatewayClass'
+type MockK8sRepository_GetGatewayClass_Call struct {
+	*mock.Call
+}
+
+// GetGatewayClass is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockK8sRepository_Expecter) GetGatewayClass(ctx interface{}, name interface{}) *MockK8sRepository_GetGatewayClass_Call {
+	return &MockK8sRepository_GetGatewayClass_Call{Call: _e.mock.On("GetGatewayClass", ctx, name)}
+}
+
+func (_c *MockK8sRepository_GetGatewayClass_Call) Run(run func(ctx context.Context, name string)) *MockK8sRepository_GetGatewayClass_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_GetGatewayClass_Call) Return(gatewayClass *v10.GatewayClass, err error) *MockK8sRepository_GetGatewayClass_Call {
+	_c.Call.Return(gatewayClass, err)
+	return _c
+}
+
+func (_c *MockK8sRepository_GetGatewayClass_Call) RunAndReturn(run func(ctx context.Context, name string) (*v10.GatewayClass, error)) *MockK8sRepository_GetGatewayClass_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGlobalLoadBalancerConfig provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) GetGlobalLoadBalancerConfig(ctx context.Context, n types.NamespacedName) (*v1alpha1.GlobalLoadBalancerConfig, error) {
 	ret := _mock.Called(ctx, n)
@@ -4941,23 +5080,23 @@ func (_c *MockK8sRepository_GetGlobalLoadBalancerConfig_Call) RunAndReturn(run f
 }
 
 // GetIngress provides a mock function for the type MockK8sRepository
-func (_mock *MockK8sRepository) GetIngress(ctx context.Context, n types.NamespacedName) (*v10.Ingress, error) {
+func (_mock *MockK8sRepository) GetIngress(ctx context.Context, n types.NamespacedName) (*v11.Ingress, error) {
 	ret := _mock.Called(ctx, n)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetIngress")
 	}
 
-	var r0 *v10.Ingress
+	var r0 *v11.Ingress
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v10.Ingress, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v11.Ingress, error)); ok {
 		return returnFunc(ctx, n)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v10.Ingress); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v11.Ingress); ok {
 		r0 = returnFunc(ctx, n)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v10.Ingress)
+			r0 = ret.Get(0).(*v11.Ingress)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, types.NamespacedName) error); ok {
@@ -4998,12 +5137,12 @@ func (_c *MockK8sRepository_GetIngress_Call) Run(run func(ctx context.Context, n
 	return _c
 }
 
-func (_c *MockK8sRepository_GetIngress_Call) Return(ingress *v10.Ingress, err error) *MockK8sRepository_GetIngress_Call {
+func (_c *MockK8sRepository_GetIngress_Call) Return(ingress *v11.Ingress, err error) *MockK8sRepository_GetIngress_Call {
 	_c.Call.Return(ingress, err)
 	return _c
 }
 
-func (_c *MockK8sRepository_GetIngress_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v10.Ingress, error)) *MockK8sRepository_GetIngress_Call {
+func (_c *MockK8sRepository_GetIngress_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v11.Ingress, error)) *MockK8sRepository_GetIngress_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5145,23 +5284,23 @@ func (_c *MockK8sRepository_GetNodeSecurityGroup_Call) RunAndReturn(run func(ctx
 }
 
 // GetSecret provides a mock function for the type MockK8sRepository
-func (_mock *MockK8sRepository) GetSecret(ctx context.Context, n types.NamespacedName) (*v11.Secret, error) {
+func (_mock *MockK8sRepository) GetSecret(ctx context.Context, n types.NamespacedName) (*v12.Secret, error) {
 	ret := _mock.Called(ctx, n)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSecret")
 	}
 
-	var r0 *v11.Secret
+	var r0 *v12.Secret
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v11.Secret, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v12.Secret, error)); ok {
 		return returnFunc(ctx, n)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v11.Secret); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v12.Secret); ok {
 		r0 = returnFunc(ctx, n)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v11.Secret)
+			r0 = ret.Get(0).(*v12.Secret)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, types.NamespacedName) error); ok {
@@ -5202,34 +5341,34 @@ func (_c *MockK8sRepository_GetSecret_Call) Run(run func(ctx context.Context, n 
 	return _c
 }
 
-func (_c *MockK8sRepository_GetSecret_Call) Return(secret *v11.Secret, err error) *MockK8sRepository_GetSecret_Call {
+func (_c *MockK8sRepository_GetSecret_Call) Return(secret *v12.Secret, err error) *MockK8sRepository_GetSecret_Call {
 	_c.Call.Return(secret, err)
 	return _c
 }
 
-func (_c *MockK8sRepository_GetSecret_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v11.Secret, error)) *MockK8sRepository_GetSecret_Call {
+func (_c *MockK8sRepository_GetSecret_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v12.Secret, error)) *MockK8sRepository_GetSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetService provides a mock function for the type MockK8sRepository
-func (_mock *MockK8sRepository) GetService(ctx context.Context, n types.NamespacedName) (*v11.Service, error) {
+func (_mock *MockK8sRepository) GetService(ctx context.Context, n types.NamespacedName) (*v12.Service, error) {
 	ret := _mock.Called(ctx, n)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetService")
 	}
 
-	var r0 *v11.Service
+	var r0 *v12.Service
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v11.Service, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v12.Service, error)); ok {
 		return returnFunc(ctx, n)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v11.Service); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v12.Service); ok {
 		r0 = returnFunc(ctx, n)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v11.Service)
+			r0 = ret.Get(0).(*v12.Service)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, types.NamespacedName) error); ok {
@@ -5270,12 +5409,12 @@ func (_c *MockK8sRepository_GetService_Call) Run(run func(ctx context.Context, n
 	return _c
 }
 
-func (_c *MockK8sRepository_GetService_Call) Return(service *v11.Service, err error) *MockK8sRepository_GetService_Call {
+func (_c *MockK8sRepository_GetService_Call) Return(service *v12.Service, err error) *MockK8sRepository_GetService_Call {
 	_c.Call.Return(service, err)
 	return _c
 }
 
-func (_c *MockK8sRepository_GetService_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v11.Service, error)) *MockK8sRepository_GetService_Call {
+func (_c *MockK8sRepository_GetService_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v12.Service, error)) *MockK8sRepository_GetService_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5420,6 +5559,150 @@ func (_c *MockK8sRepository_ListGlobalLoadBalancerConfig_Call) RunAndReturn(run 
 	return _c
 }
 
+// ListHTTPRoute provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) ListHTTPRoute(ctx context.Context, list *v10.HTTPRouteList, opts ...client.ListOption) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, list, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, list)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListHTTPRoute")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.HTTPRouteList, ...client.ListOption) error); ok {
+		r0 = returnFunc(ctx, list, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_ListHTTPRoute_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListHTTPRoute'
+type MockK8sRepository_ListHTTPRoute_Call struct {
+	*mock.Call
+}
+
+// ListHTTPRoute is a helper method to define mock.On call
+//   - ctx context.Context
+//   - list *v10.HTTPRouteList
+//   - opts ...client.ListOption
+func (_e *MockK8sRepository_Expecter) ListHTTPRoute(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListHTTPRoute_Call {
+	return &MockK8sRepository_ListHTTPRoute_Call{Call: _e.mock.On("ListHTTPRoute",
+		append([]interface{}{ctx, list}, opts...)...)}
+}
+
+func (_c *MockK8sRepository_ListHTTPRoute_Call) Run(run func(ctx context.Context, list *v10.HTTPRouteList, opts ...client.ListOption)) *MockK8sRepository_ListHTTPRoute_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.HTTPRouteList
+		if args[1] != nil {
+			arg1 = args[1].(*v10.HTTPRouteList)
+		}
+		var arg2 []client.ListOption
+		var variadicArgs []client.ListOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ListOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_ListHTTPRoute_Call) Return(err error) *MockK8sRepository_ListHTTPRoute_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_ListHTTPRoute_Call) RunAndReturn(run func(ctx context.Context, list *v10.HTTPRouteList, opts ...client.ListOption) error) *MockK8sRepository_ListHTTPRoute_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListListenerRuleConfig provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) ListListenerRuleConfig(ctx context.Context, list *v1alpha10.ListenerRuleConfigList, opts ...client.ListOption) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, list, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, list)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListListenerRuleConfig")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha10.ListenerRuleConfigList, ...client.ListOption) error); ok {
+		r0 = returnFunc(ctx, list, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_ListListenerRuleConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListListenerRuleConfig'
+type MockK8sRepository_ListListenerRuleConfig_Call struct {
+	*mock.Call
+}
+
+// ListListenerRuleConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - list *v1alpha10.ListenerRuleConfigList
+//   - opts ...client.ListOption
+func (_e *MockK8sRepository_Expecter) ListListenerRuleConfig(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListListenerRuleConfig_Call {
+	return &MockK8sRepository_ListListenerRuleConfig_Call{Call: _e.mock.On("ListListenerRuleConfig",
+		append([]interface{}{ctx, list}, opts...)...)}
+}
+
+func (_c *MockK8sRepository_ListListenerRuleConfig_Call) Run(run func(ctx context.Context, list *v1alpha10.ListenerRuleConfigList, opts ...client.ListOption)) *MockK8sRepository_ListListenerRuleConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v1alpha10.ListenerRuleConfigList
+		if args[1] != nil {
+			arg1 = args[1].(*v1alpha10.ListenerRuleConfigList)
+		}
+		var arg2 []client.ListOption
+		var variadicArgs []client.ListOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ListOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_ListListenerRuleConfig_Call) Return(err error) *MockK8sRepository_ListListenerRuleConfig_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_ListListenerRuleConfig_Call) RunAndReturn(run func(ctx context.Context, list *v1alpha10.ListenerRuleConfigList, opts ...client.ListOption) error) *MockK8sRepository_ListListenerRuleConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListLoadBalancerConfig provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) ListLoadBalancerConfig(ctx context.Context, list *v1alpha1.LoadBalancerConfigList, opts ...client.ListOption) error {
 	var tmpRet mock.Arguments
@@ -5493,7 +5776,7 @@ func (_c *MockK8sRepository_ListLoadBalancerConfig_Call) RunAndReturn(run func(c
 }
 
 // ListNode provides a mock function for the type MockK8sRepository
-func (_mock *MockK8sRepository) ListNode(ctx context.Context, list *v11.NodeList, opts ...client.ListOption) error {
+func (_mock *MockK8sRepository) ListNode(ctx context.Context, list *v12.NodeList, opts ...client.ListOption) error {
 	var tmpRet mock.Arguments
 	if len(opts) > 0 {
 		tmpRet = _mock.Called(ctx, list, opts)
@@ -5507,7 +5790,7 @@ func (_mock *MockK8sRepository) ListNode(ctx context.Context, list *v11.NodeList
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v11.NodeList, ...client.ListOption) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v12.NodeList, ...client.ListOption) error); ok {
 		r0 = returnFunc(ctx, list, opts...)
 	} else {
 		r0 = ret.Error(0)
@@ -5522,22 +5805,22 @@ type MockK8sRepository_ListNode_Call struct {
 
 // ListNode is a helper method to define mock.On call
 //   - ctx context.Context
-//   - list *v11.NodeList
+//   - list *v12.NodeList
 //   - opts ...client.ListOption
 func (_e *MockK8sRepository_Expecter) ListNode(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListNode_Call {
 	return &MockK8sRepository_ListNode_Call{Call: _e.mock.On("ListNode",
 		append([]interface{}{ctx, list}, opts...)...)}
 }
 
-func (_c *MockK8sRepository_ListNode_Call) Run(run func(ctx context.Context, list *v11.NodeList, opts ...client.ListOption)) *MockK8sRepository_ListNode_Call {
+func (_c *MockK8sRepository_ListNode_Call) Run(run func(ctx context.Context, list *v12.NodeList, opts ...client.ListOption)) *MockK8sRepository_ListNode_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *v11.NodeList
+		var arg1 *v12.NodeList
 		if args[1] != nil {
-			arg1 = args[1].(*v11.NodeList)
+			arg1 = args[1].(*v12.NodeList)
 		}
 		var arg2 []client.ListOption
 		var variadicArgs []client.ListOption
@@ -5559,7 +5842,7 @@ func (_c *MockK8sRepository_ListNode_Call) Return(err error) *MockK8sRepository_
 	return _c
 }
 
-func (_c *MockK8sRepository_ListNode_Call) RunAndReturn(run func(ctx context.Context, list *v11.NodeList, opts ...client.ListOption) error) *MockK8sRepository_ListNode_Call {
+func (_c *MockK8sRepository_ListNode_Call) RunAndReturn(run func(ctx context.Context, list *v12.NodeList, opts ...client.ListOption) error) *MockK8sRepository_ListNode_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5632,6 +5915,150 @@ func (_c *MockK8sRepository_ListNodeSecurityGroup_Call) Return(err error) *MockK
 }
 
 func (_c *MockK8sRepository_ListNodeSecurityGroup_Call) RunAndReturn(run func(ctx context.Context, list *v1alpha1.NodeSecurityGroupList, opts ...client.ListOption) error) *MockK8sRepository_ListNodeSecurityGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListReferenceGrant provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) ListReferenceGrant(ctx context.Context, list *v1beta1.ReferenceGrantList, opts ...client.ListOption) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, list, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, list)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListReferenceGrant")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1beta1.ReferenceGrantList, ...client.ListOption) error); ok {
+		r0 = returnFunc(ctx, list, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_ListReferenceGrant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListReferenceGrant'
+type MockK8sRepository_ListReferenceGrant_Call struct {
+	*mock.Call
+}
+
+// ListReferenceGrant is a helper method to define mock.On call
+//   - ctx context.Context
+//   - list *v1beta1.ReferenceGrantList
+//   - opts ...client.ListOption
+func (_e *MockK8sRepository_Expecter) ListReferenceGrant(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListReferenceGrant_Call {
+	return &MockK8sRepository_ListReferenceGrant_Call{Call: _e.mock.On("ListReferenceGrant",
+		append([]interface{}{ctx, list}, opts...)...)}
+}
+
+func (_c *MockK8sRepository_ListReferenceGrant_Call) Run(run func(ctx context.Context, list *v1beta1.ReferenceGrantList, opts ...client.ListOption)) *MockK8sRepository_ListReferenceGrant_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v1beta1.ReferenceGrantList
+		if args[1] != nil {
+			arg1 = args[1].(*v1beta1.ReferenceGrantList)
+		}
+		var arg2 []client.ListOption
+		var variadicArgs []client.ListOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ListOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_ListReferenceGrant_Call) Return(err error) *MockK8sRepository_ListReferenceGrant_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_ListReferenceGrant_Call) RunAndReturn(run func(ctx context.Context, list *v1beta1.ReferenceGrantList, opts ...client.ListOption) error) *MockK8sRepository_ListReferenceGrant_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListTargetGroupConfig provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) ListTargetGroupConfig(ctx context.Context, list *v1alpha10.TargetGroupConfigList, opts ...client.ListOption) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, list, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, list)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTargetGroupConfig")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha10.TargetGroupConfigList, ...client.ListOption) error); ok {
+		r0 = returnFunc(ctx, list, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_ListTargetGroupConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListTargetGroupConfig'
+type MockK8sRepository_ListTargetGroupConfig_Call struct {
+	*mock.Call
+}
+
+// ListTargetGroupConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - list *v1alpha10.TargetGroupConfigList
+//   - opts ...client.ListOption
+func (_e *MockK8sRepository_Expecter) ListTargetGroupConfig(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListTargetGroupConfig_Call {
+	return &MockK8sRepository_ListTargetGroupConfig_Call{Call: _e.mock.On("ListTargetGroupConfig",
+		append([]interface{}{ctx, list}, opts...)...)}
+}
+
+func (_c *MockK8sRepository_ListTargetGroupConfig_Call) Run(run func(ctx context.Context, list *v1alpha10.TargetGroupConfigList, opts ...client.ListOption)) *MockK8sRepository_ListTargetGroupConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v1alpha10.TargetGroupConfigList
+		if args[1] != nil {
+			arg1 = args[1].(*v1alpha10.TargetGroupConfigList)
+		}
+		var arg2 []client.ListOption
+		var variadicArgs []client.ListOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ListOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_ListTargetGroupConfig_Call) Return(err error) *MockK8sRepository_ListTargetGroupConfig_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_ListTargetGroupConfig_Call) RunAndReturn(run func(ctx context.Context, list *v1alpha10.TargetGroupConfigList, opts ...client.ListOption) error) *MockK8sRepository_ListTargetGroupConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5855,6 +6282,132 @@ func (_c *MockK8sRepository_PatchMutateLoadBalancerConfig_Call) RunAndReturn(run
 	return _c
 }
 
+// PatchMutateStatusGateway provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) PatchMutateStatusGateway(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool) error {
+	ret := _mock.Called(ctx, gw, mutateFunc)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchMutateStatusGateway")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.Gateway, func(ctx context.Context, obj *v10.Gateway) bool) error); ok {
+		r0 = returnFunc(ctx, gw, mutateFunc)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_PatchMutateStatusGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PatchMutateStatusGateway'
+type MockK8sRepository_PatchMutateStatusGateway_Call struct {
+	*mock.Call
+}
+
+// PatchMutateStatusGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gw *v10.Gateway
+//   - mutateFunc func(ctx context.Context, obj *v10.Gateway) bool
+func (_e *MockK8sRepository_Expecter) PatchMutateStatusGateway(ctx interface{}, gw interface{}, mutateFunc interface{}) *MockK8sRepository_PatchMutateStatusGateway_Call {
+	return &MockK8sRepository_PatchMutateStatusGateway_Call{Call: _e.mock.On("PatchMutateStatusGateway", ctx, gw, mutateFunc)}
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGateway_Call) Run(run func(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool)) *MockK8sRepository_PatchMutateStatusGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.Gateway
+		if args[1] != nil {
+			arg1 = args[1].(*v10.Gateway)
+		}
+		var arg2 func(ctx context.Context, obj *v10.Gateway) bool
+		if args[2] != nil {
+			arg2 = args[2].(func(ctx context.Context, obj *v10.Gateway) bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGateway_Call) Return(err error) *MockK8sRepository_PatchMutateStatusGateway_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGateway_Call) RunAndReturn(run func(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool) error) *MockK8sRepository_PatchMutateStatusGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PatchMutateStatusGatewayClass provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) PatchMutateStatusGatewayClass(ctx context.Context, gwc *v10.GatewayClass, mutateFunc func(ctx context.Context, obj *v10.GatewayClass) bool) error {
+	ret := _mock.Called(ctx, gwc, mutateFunc)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchMutateStatusGatewayClass")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.GatewayClass, func(ctx context.Context, obj *v10.GatewayClass) bool) error); ok {
+		r0 = returnFunc(ctx, gwc, mutateFunc)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_PatchMutateStatusGatewayClass_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PatchMutateStatusGatewayClass'
+type MockK8sRepository_PatchMutateStatusGatewayClass_Call struct {
+	*mock.Call
+}
+
+// PatchMutateStatusGatewayClass is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gwc *v10.GatewayClass
+//   - mutateFunc func(ctx context.Context, obj *v10.GatewayClass) bool
+func (_e *MockK8sRepository_Expecter) PatchMutateStatusGatewayClass(ctx interface{}, gwc interface{}, mutateFunc interface{}) *MockK8sRepository_PatchMutateStatusGatewayClass_Call {
+	return &MockK8sRepository_PatchMutateStatusGatewayClass_Call{Call: _e.mock.On("PatchMutateStatusGatewayClass", ctx, gwc, mutateFunc)}
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGatewayClass_Call) Run(run func(ctx context.Context, gwc *v10.GatewayClass, mutateFunc func(ctx context.Context, obj *v10.GatewayClass) bool)) *MockK8sRepository_PatchMutateStatusGatewayClass_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.GatewayClass
+		if args[1] != nil {
+			arg1 = args[1].(*v10.GatewayClass)
+		}
+		var arg2 func(ctx context.Context, obj *v10.GatewayClass) bool
+		if args[2] != nil {
+			arg2 = args[2].(func(ctx context.Context, obj *v10.GatewayClass) bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGatewayClass_Call) Return(err error) *MockK8sRepository_PatchMutateStatusGatewayClass_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusGatewayClass_Call) RunAndReturn(run func(ctx context.Context, gwc *v10.GatewayClass, mutateFunc func(ctx context.Context, obj *v10.GatewayClass) bool) error) *MockK8sRepository_PatchMutateStatusGatewayClass_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PatchMutateStatusGlobalLoadBalancerConfig provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) PatchMutateStatusGlobalLoadBalancerConfig(ctx context.Context, glbc *v1alpha1.GlobalLoadBalancerConfig, mutateFunc func(ctx context.Context, obj *v1alpha1.GlobalLoadBalancerConfig) bool) error {
 	ret := _mock.Called(ctx, glbc, mutateFunc)
@@ -5914,6 +6467,69 @@ func (_c *MockK8sRepository_PatchMutateStatusGlobalLoadBalancerConfig_Call) Retu
 }
 
 func (_c *MockK8sRepository_PatchMutateStatusGlobalLoadBalancerConfig_Call) RunAndReturn(run func(ctx context.Context, glbc *v1alpha1.GlobalLoadBalancerConfig, mutateFunc func(ctx context.Context, obj *v1alpha1.GlobalLoadBalancerConfig) bool) error) *MockK8sRepository_PatchMutateStatusGlobalLoadBalancerConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PatchMutateStatusHTTPRoute provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) PatchMutateStatusHTTPRoute(ctx context.Context, route *v10.HTTPRoute, mutateFunc func(ctx context.Context, obj *v10.HTTPRoute) bool) error {
+	ret := _mock.Called(ctx, route, mutateFunc)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchMutateStatusHTTPRoute")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.HTTPRoute, func(ctx context.Context, obj *v10.HTTPRoute) bool) error); ok {
+		r0 = returnFunc(ctx, route, mutateFunc)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_PatchMutateStatusHTTPRoute_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PatchMutateStatusHTTPRoute'
+type MockK8sRepository_PatchMutateStatusHTTPRoute_Call struct {
+	*mock.Call
+}
+
+// PatchMutateStatusHTTPRoute is a helper method to define mock.On call
+//   - ctx context.Context
+//   - route *v10.HTTPRoute
+//   - mutateFunc func(ctx context.Context, obj *v10.HTTPRoute) bool
+func (_e *MockK8sRepository_Expecter) PatchMutateStatusHTTPRoute(ctx interface{}, route interface{}, mutateFunc interface{}) *MockK8sRepository_PatchMutateStatusHTTPRoute_Call {
+	return &MockK8sRepository_PatchMutateStatusHTTPRoute_Call{Call: _e.mock.On("PatchMutateStatusHTTPRoute", ctx, route, mutateFunc)}
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusHTTPRoute_Call) Run(run func(ctx context.Context, route *v10.HTTPRoute, mutateFunc func(ctx context.Context, obj *v10.HTTPRoute) bool)) *MockK8sRepository_PatchMutateStatusHTTPRoute_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.HTTPRoute
+		if args[1] != nil {
+			arg1 = args[1].(*v10.HTTPRoute)
+		}
+		var arg2 func(ctx context.Context, obj *v10.HTTPRoute) bool
+		if args[2] != nil {
+			arg2 = args[2].(func(ctx context.Context, obj *v10.HTTPRoute) bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusHTTPRoute_Call) Return(err error) *MockK8sRepository_PatchMutateStatusHTTPRoute_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateStatusHTTPRoute_Call) RunAndReturn(run func(ctx context.Context, route *v10.HTTPRoute, mutateFunc func(ctx context.Context, obj *v10.HTTPRoute) bool) error) *MockK8sRepository_PatchMutateStatusHTTPRoute_Call {
 	_c.Call.Return(run)
 	return _c
 }

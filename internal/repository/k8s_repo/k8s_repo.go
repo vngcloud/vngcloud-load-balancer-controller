@@ -18,7 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
+	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository"
@@ -434,4 +437,66 @@ func (r *k8sRepository) PatchMutateStatusVngcloudGlobalLoadBalancer(
 		// type-assert so you can use strongly typed fields
 		return mutate(ctx, obj.(*v1alpha1.VngcloudGlobalLoadBalancer))
 	})
+}
+
+// ------------------- gateway-api ------------------
+
+func (r *k8sRepository) GetGateway(ctx context.Context, n types.NamespacedName) (*gwv1.Gateway, error) {
+	gw := &gwv1.Gateway{}
+	err := r.client.Get(ctx, n, gw)
+	return gw, err
+}
+
+func (r *k8sRepository) PatchMutateStatusGateway(
+	ctx context.Context,
+	gw *gwv1.Gateway,
+	mutate func(ctx context.Context, obj *gwv1.Gateway) bool,
+) error {
+	return r.patchMutateStatusObject(ctx, gw, func(ctx context.Context, obj client.Object) bool {
+		return mutate(ctx, obj.(*gwv1.Gateway))
+	})
+}
+
+func (r *k8sRepository) GetGatewayClass(ctx context.Context, name string) (*gwv1.GatewayClass, error) {
+	gwc := &gwv1.GatewayClass{}
+	err := r.client.Get(ctx, types.NamespacedName{Name: name}, gwc)
+	return gwc, err
+}
+
+func (r *k8sRepository) PatchMutateStatusGatewayClass(
+	ctx context.Context,
+	gwc *gwv1.GatewayClass,
+	mutate func(ctx context.Context, obj *gwv1.GatewayClass) bool,
+) error {
+	return r.patchMutateStatusObject(ctx, gwc, func(ctx context.Context, obj client.Object) bool {
+		return mutate(ctx, obj.(*gwv1.GatewayClass))
+	})
+}
+
+func (r *k8sRepository) ListHTTPRoute(ctx context.Context, list *gwv1.HTTPRouteList, opts ...client.ListOption) error {
+	return r.client.List(ctx, list, opts...)
+}
+
+func (r *k8sRepository) PatchMutateStatusHTTPRoute(
+	ctx context.Context,
+	route *gwv1.HTTPRoute,
+	mutate func(ctx context.Context, obj *gwv1.HTTPRoute) bool,
+) error {
+	return r.patchMutateStatusObject(ctx, route, func(ctx context.Context, obj client.Object) bool {
+		return mutate(ctx, obj.(*gwv1.HTTPRoute))
+	})
+}
+
+func (r *k8sRepository) ListReferenceGrant(ctx context.Context, list *gwv1beta1.ReferenceGrantList, opts ...client.ListOption) error {
+	return r.client.List(ctx, list, opts...)
+}
+
+// ------------------- vks gateway extension CRDs ------------------
+
+func (r *k8sRepository) ListTargetGroupConfig(ctx context.Context, list *gatewayv1alpha1.TargetGroupConfigList, opts ...client.ListOption) error {
+	return r.client.List(ctx, list, opts...)
+}
+
+func (r *k8sRepository) ListListenerRuleConfig(ctx context.Context, list *gatewayv1alpha1.ListenerRuleConfigList, opts ...client.ListOption) error {
+	return r.client.List(ctx, list, opts...)
 }
