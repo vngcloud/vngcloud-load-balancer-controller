@@ -1,13 +1,15 @@
 /*
 Copyright 2026.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
 */
 
+// Package alb's test suite boots an in-memory Kubernetes API server (envtest)
+// alongside the vngcloud_mocks fake LB provider and runs the full controller
+// stack — Gateway / GatewayClass / HTTPRoute / TargetGroupConfig /
+// ListenerRuleConfig (this package) plus the existing LoadBalancerConfig +
+// NodeSecurityGroup reconcilers — so each Ginkgo spec exercises a real
+// reconcile loop end-to-end without touching a vngcloud cluster.
+//
+// Mirrors the pattern in internal/controller/networking/suite_test.go.
 package alb
 
 import (
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
@@ -36,23 +39,57 @@ import (
 
 	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	vksv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/listenerruleconfig"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/targetgroupconfig"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/lbc_controller"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/nsg_controller"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/k8s_repo"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/vngcloud_repo/vngcloud_mocks"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/alb_gateway_uc"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/lbc_uc"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/nsg_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/annotations"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/config"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/k8s"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/lbc"
+	lbcmetrics "github.com/vngcloud/vngcloud-load-balancer-controller/pkg/metrics/lbc"
 	metricsutil "github.com/vngcloud/vngcloud-load-balancer-controller/pkg/metrics/util"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/nsg"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 )
 
 const mockClusterID = "k8s-00000000-0000-0000-0000-000000000000"
 
 var (
-	ctx       context.Context
-	cancel    context.CancelFunc
-	testEnv   *envtest.Environment
-	cfg       *rest.Config
-	k8sClient client.Client
+	ctx          context.Context
+	cancel       context.CancelFunc
+	testEnv      *envtest.Environment
+	cfg          *rest.Config
+	k8sClient    client.Client
+	vngcloudRepo *vngcloud_mocks.MockProvider // exposed so specs can inspect LB / pool / listener state
+
+	mockConfig = &config.Config{
+		Cluster: struct {
+			IsRunRemote bool   `mapstructure:"isRunRemote"`
+			Namespace   string `mapstructure:"namespace"`
+			ClusterID   string `mapstructure:"clusterID"`
+			Region      string `mapstructure:"region"`
+		}{IsRunRemote: false, ClusterID: mockClusterID},
+		LoadBalancerOpts: config.LoadBalancerOpts{
+			DefaultL7PackageName:      "ALB_Small",
+			DefaultPoolAlgorithm:      "ROUND_ROBIN",
+			DefaultScheme:             "Internet",
+			DefaultTimeoutClient:      50,
+			DefaultTimeoutConnection:  5,
+			DefaultTimeoutMember:      50,
+			DefaultHealthyThreshold:   3,
+			DefaultUnhealthyThreshold: 3,
+			DefaultInterval:           30,
+			DefaultTimeout:            5,
+			DefaultAllowedCidrs:       "0.0.0.0/0",
+		},
+	}
 )
 
 func TestALBGatewayControllers(t *testing.T) {
@@ -62,7 +99,7 @@ func TestALBGatewayControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 
 	ctx, cancel = context.WithCancel(context.TODO())
 
@@ -94,18 +131,16 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 
-	By("starting manager with ALB Gateway reconcilers")
+	By("starting manager + full reconciler stack (Gateway / GatewayClass / HTTPRoute / TGC / LRC + LBC + NSG)")
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
-		// Disable metrics server — port :8080 may already be bound (e.g. by a `make run`
-		// instance during local dev) and envtest doesn't need metrics.
+		Scheme:  scheme.Scheme,
 		Metrics: metricsserver.Options{BindAddress: "0"},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
 	finalizerManager := k8s.NewDefaultFinalizerManager(mgr.GetClient(), ctrl.Log)
 	k8sRepo := k8s_repo.NewK8sRepository(mgr.GetClient())
-	vngcloudRepo := vngcloud_mocks.NewMockProvider()
+	vngcloudRepo = vngcloud_mocks.NewMockProvider()
 	Expect(vngcloudRepo.Init(nil)).To(Succeed())
 
 	annotationParser := annotations.NewSuffixAnnotationParser("gateway.vks.vngcloud.vn")
@@ -113,20 +148,58 @@ var _ = BeforeSuite(func() {
 	cniDetector.EXPECT().DetectCNIType(mock.Anything).Return(utils.CiliumNativeRouting, nil).Maybe()
 	endpointResolver := utils.NewDefaultEndpointResolver(ctx, mgr.GetClient())
 	reconcileCounters := metricsutil.NewReconcileCounters()
+	lbcMetricsCollector := lbcmetrics.NewCollector(metrics.Registry, mgr, reconcileCounters, ctrl.Log.WithName("controller_metrics"))
 
+	// LBC reconciler — Gateway hands off LB provisioning to this.
+	lbcUC := lbc_uc.NewLoadBalancerConfigUseCase(mockConfig, k8sRepo, vngcloudRepo)
+	lbcRec := lbc_controller.NewLoadBalancerConfigReconciler(
+		mgr.GetClient(), mgr.GetScheme(), lbcUC,
+		mgr.GetEventRecorderFor("lbc-controller"),
+		finalizerManager, lbc.NewLoadBalancerConfigUtils(domain.LbcFinalizer),
+		lbcMetricsCollector, reconcileCounters, domain.DefaultMaxConcurrentReconciles,
+	)
+	Expect(lbcRec.SetupWithManager(ctx, mgr)).To(Succeed())
+
+	// NSG reconciler — Gateway delete cascade waits on NSG cleanup.
+	nsgUC := nsg_uc.NewNodeSecurityGroupUseCase(mockConfig, k8sRepo, vngcloudRepo)
+	nsgRec := nsg_controller.NewNodeSecurityGroupReconciler(
+		mgr.GetClient(), mgr.GetScheme(), nsgUC,
+		mgr.GetEventRecorderFor("nsg-controller"),
+		finalizerManager, nsg.NewNodeSecurityGroupUtils(domain.NsgFinalizer),
+		lbcMetricsCollector, reconcileCounters, 1,
+	)
+	Expect(nsgRec.SetupWithManager(ctx, mgr)).To(Succeed())
+
+	// ALB Gateway reconcilers (under test).
 	albUC := alb_gateway_uc.NewALBGatewayUseCase(
 		mockClusterID, k8sRepo, vngcloudRepo, annotationParser, cniDetector, endpointResolver,
 	)
-
 	Expect(NewGatewayClassReconciler(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr)).To(Succeed())
 	Expect(NewGatewayReconciler(albUC, mgr.GetClient(), mgr.GetScheme(), finalizerManager,
 		mgr.GetEventRecorderFor("gateway-alb"), reconcileCounters, 1).SetupWithManager(mgr)).To(Succeed())
 	Expect(NewHTTPRouteReconciler(albUC, mgr.GetClient(), mgr.GetScheme(), reconcileCounters).SetupWithManager(mgr)).To(Succeed())
 
+	// Validation-only reconcilers for the two extension CRDs.
+	Expect(targetgroupconfig.New(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr)).To(Succeed())
+	Expect(listenerruleconfig.New(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed())
 	}()
+
+	By("seeding mock cluster nodes (NodePort target-type needs at least one node)")
+	for _, n := range []*corev1.Node{
+		vngcloud_mocks.MockNode1, vngcloud_mocks.MockNode2,
+	} {
+		Expect(k8sClient.Create(ctx, n)).To(Succeed())
+	}
+
+	By("creating the vngcloud-alb GatewayClass once for the suite")
+	gwc := &gwv1.GatewayClass{}
+	gwc.Name = "vngcloud-alb"
+	gwc.Spec.ControllerName = gwv1.GatewayController(domain.ControllerNameALB)
+	Expect(k8sClient.Create(ctx, gwc)).To(Succeed())
 })
 
 var _ = AfterSuite(func() {
@@ -137,9 +210,9 @@ var _ = AfterSuite(func() {
 	}
 })
 
-// envTestBinaryDir mirrors the helper used by other suites so this suite runs
-// from an IDE without `make setup-envtest`. Returns "" when the binaries
-// directory is absent — envtest then falls back to KUBEBUILDER_ASSETS.
+// envTestBinaryDir locates the first binary directory in bin/k8s/ so this
+// suite runs from an IDE without a manual `make setup-envtest`. Returns ""
+// when the directory is absent — envtest then falls back to KUBEBUILDER_ASSETS.
 func envTestBinaryDir() string {
 	base := filepath.Join("..", "..", "..", "..", "bin", "k8s")
 	entries, err := os.ReadDir(base)
@@ -154,4 +227,6 @@ func envTestBinaryDir() string {
 	return ""
 }
 
-func init() { _ = runtime.GOOS }
+// _ = runtime ensures the import isn't dropped on platforms where envtest binary
+// directory selection happens to be elsewhere; some IDE-launched runs trigger it.
+var _ = runtime.GOOS
