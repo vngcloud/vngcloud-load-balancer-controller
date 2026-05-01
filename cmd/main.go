@@ -42,8 +42,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
+	gatewayv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	vksvngcloudvnv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
+	albgw "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/alb"
+	gwlrc "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/listenerruleconfig"
+	gwtgc "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/targetgroupconfig"
 	corecontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/core"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/glbc_controller"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/lbc_controller"
@@ -54,6 +61,7 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/k8s_repo"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/vngcloud_repo"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/alb_gateway_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/glbc_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/ingress_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/lbc_uc"
@@ -90,6 +98,10 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(vksvngcloudvnv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(gwv1.Install(scheme))
+	utilruntime.Must(gwv1alpha2.Install(scheme))
+	utilruntime.Must(gwv1beta1.Install(scheme))
+	utilruntime.Must(gatewayv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -135,6 +147,9 @@ func main() { //nolint:gocyclo
 		"If set, the VngcloudGlobalLoadBalancer controller will be disabled")
 	flag.BoolVar(&disableServiceGLBController, "disable-service-glb-controller", false,
 		"If set, the ServiceGLB controller will be disabled")
+	var enableGatewayAPIALB bool
+	flag.BoolVar(&enableGatewayAPIALB, "enable-gateway-api-alb", false,
+		"If set, the vngcloud-alb GatewayClass controller (Gateway API L7) will be enabled.")
 	flag.DurationVar(&syncPeriod, "sync-period", 5*time.Minute,
 		"The minimum frequency at which watched resources are reconciled. "+
 			"A lower period will correct entropy more quickly, "+
@@ -332,6 +347,38 @@ func main() { //nolint:gocyclo
 		)
 		if err = reconciler.SetupWithManager(ctx, mgr, clientSet); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Ingress")
+			os.Exit(1)
+		}
+	}
+
+	if enableGatewayAPIALB {
+		annotationParser := annotations.NewSuffixAnnotationParser(domain.GATEWAY_API_PREFIX)
+		cniDetector := utils.NewDetector(mgr.GetClient())
+		albUC := alb_gateway_uc.NewALBGatewayUseCase(
+			conf.Cluster.ClusterID, k8sRepo, vngcloudRepo, annotationParser, cniDetector, endpointResolver)
+		if err := albgw.NewGatewayClassReconciler(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "GatewayClass-ALB")
+			os.Exit(1)
+		}
+		if err := albgw.NewGatewayReconciler(
+			albUC, mgr.GetClient(), mgr.GetScheme(), finalizerManager,
+			mgr.GetEventRecorderFor("gateway-alb"), reconcileCounters, conf.MaxConcurrentReconciles,
+		).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Gateway-ALB")
+			os.Exit(1)
+		}
+		if err := albgw.NewHTTPRouteReconciler(
+			albUC, mgr.GetClient(), mgr.GetScheme(), reconcileCounters,
+		).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "HTTPRoute-ALB")
+			os.Exit(1)
+		}
+		if err := gwtgc.New(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "TargetGroupConfig")
+			os.Exit(1)
+		}
+		if err := gwlrc.New(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ListenerRuleConfig")
 			os.Exit(1)
 		}
 	}
