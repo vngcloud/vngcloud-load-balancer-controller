@@ -25,6 +25,22 @@ func TestBuildLBSpec_FromGateway(t *testing.T) {
 	assert.Contains(t, spec.LoadBalancerName, "ns1")
 }
 
+// TestBuildLBSpec_NameUniqueAcrossClusters verifies that two clusters in the
+// same vngcloud account, each running this controller with a Gateway of the
+// same (namespace, name), produce different vngcloud LB names. Without this
+// the dashboard would show two same-named LBs and a name-based lookup would
+// be ambiguous (matches the existing Ingress / Service behavior via NameHelper).
+func TestBuildLBSpec_NameUniqueAcrossClusters(t *testing.T) {
+	gw := &gwv1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: "default"}}
+	effective := &vksv1alpha1.LoadBalancerConfigSpec{}
+
+	a := BuildLBSpec(gw, effective, "k8s-cluster-AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	b := BuildLBSpec(gw, effective, "k8s-cluster-BBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+
+	assert.NotEqual(t, a.LoadBalancerName, b.LoadBalancerName,
+		"two clusters with the same Gateway must produce distinct LB names")
+}
+
 func TestBuildLBSpec_HonorsExplicitLBName(t *testing.T) {
 	gw := &gwv1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: "g1", Namespace: "ns1"}}
 	effective := &vksv1alpha1.LoadBalancerConfigSpec{LoadBalancerName: "my-explicit-name"}
