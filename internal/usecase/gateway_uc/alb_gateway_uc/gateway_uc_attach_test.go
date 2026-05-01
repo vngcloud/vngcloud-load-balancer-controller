@@ -155,4 +155,3 @@ func TestAttachHTTPRoutes_NoAttachedRoutes_ShortCircuits(t *testing.T) {
 	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec))
 	assert.Empty(t, lbSpec.Pools)
 }
-

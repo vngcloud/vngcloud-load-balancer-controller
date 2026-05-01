@@ -205,4 +205,3 @@ func (uc *albGatewayUseCase) deleteNodeSecurityGroup(ctx context.Context, gw *gw
 	}
 	return stillExist, nil
 }
-

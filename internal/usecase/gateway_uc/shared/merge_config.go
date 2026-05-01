@@ -14,7 +14,7 @@ import (
 //   - mode = class.MergingMode (default PreferGateway). Per design, only the class-level
 //     LBC's MergingMode field is honored.
 //   - Scalar/pointer fields: PreferGateway → gateway value wins if non-nil/non-zero, else class.
-//                            PreferGatewayClass → class value wins if non-nil/non-zero, else gateway.
+//     PreferGatewayClass → class value wins if non-nil/non-zero, else gateway.
 //   - LoadBalancerId: gateway-only (class value ignored — class can't pin a single LB).
 //   - Listeners[] and Tags: merged by name/key. Each per-item value resolved per mode.
 func MergeLBC(class, gw *vksv1alpha1.LoadBalancerConfigSpec) *vksv1alpha1.LoadBalancerConfigSpec {

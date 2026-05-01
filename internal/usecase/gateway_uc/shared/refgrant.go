@@ -6,7 +6,7 @@ import (
 
 // RefRequest captures a cross-namespace reference query against the ReferenceGrant set.
 type RefRequest struct {
-	FromGroup, FromKind, FromNS string
+	FromGroup, FromKind, FromNS   string
 	ToGroup, ToKind, ToNS, ToName string
 }
 
