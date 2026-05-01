@@ -18,6 +18,7 @@ import (
 	vksv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	repomocks "github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/errs"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 )
 
 func newGW(name, ns, uid string) *gwv1.Gateway {
@@ -31,6 +32,12 @@ func newALBUC(k8s *repomocks.MockK8sRepository) *albGatewayUseCase {
 		clusterId: "test-cluster",
 		k8sRepo:   k8s,
 	}
+}
+
+func newALBUCWithResolver(k8s *repomocks.MockK8sRepository, ep utils.EndpointResolver) *albGatewayUseCase {
+	uc := newALBUC(k8s)
+	uc.endpointResolver = ep
+	return uc
 }
 
 func TestDelete_GatewayNotFound_ReturnsNil(t *testing.T) {

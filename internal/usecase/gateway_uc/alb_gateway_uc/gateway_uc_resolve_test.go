@@ -175,6 +175,8 @@ func TestEnsure_DelegatesToResolver_HappyPath(t *testing.T) {
 		Return(newGWWithListeners("g1", "ns", "albcls", httpListener("h", 80)), nil)
 	k8s.EXPECT().GetGatewayClass(mock.Anything, "albcls").
 		Return(newGWClass("albcls", domain.ControllerNameALB, nil), nil)
+	// No HTTPRoutes attached → attachHTTPRoutes short-circuits without further list calls.
+	k8s.EXPECT().ListHTTPRoute(mock.Anything, mock.Anything).Return(nil)
 
 	err := newALBUC(k8s).EnsureALBGatewayUseCase(context.Background(),
 		ctrl.Request{NamespacedName: types.NamespacedName{Name: "g1", Namespace: "ns"}})

@@ -80,7 +80,9 @@ func (uc *albGatewayUseCase) EnsureALBGatewayUseCase(ctx context.Context, req ct
 	if res == nil {
 		return nil
 	}
-	// TODO(C9c): attach HTTPRoutes → pools + policies onto res.lbSpec.
+	if err := uc.attachHTTPRoutes(ctx, res.gateway, res.lbSpec); err != nil {
+		return err
+	}
 	// TODO(C9d): create or patch the LoadBalancerConfig CRD from res.lbSpec.
 	// TODO(C9e): write Accepted/Programmed/per-listener Gateway status.
 	_ = res
