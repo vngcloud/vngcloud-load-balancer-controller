@@ -75,13 +75,13 @@ func SynthesizeMembers(in []BackendEndpoints) []vksv1alpha1.PoolMember {
 
 // memberName derives a deterministic, vngcloud-acceptable PoolMember.Name from an
 // endpoint (IP, port). vngcloud requires names to match [a-zA-Z0-9_.-] and be 5-50
-// chars, so dots in IPs are replaced with dashes and the port is appended.
+// chars; every controller-managed name carries the "vks-" prefix.
 //
-// Example: 10.0.100.3:32428 → "m-10-0-100-3-32428".
+// Example: 10.0.100.3:32428 → "vks-m-10-0-100-3-32428".
 func memberName(ip string, port int) string {
 	safe := strings.ReplaceAll(ip, ".", "-")
 	safe = strings.ReplaceAll(safe, ":", "-") // IPv6 zone separator, defensive
-	name := fmt.Sprintf("m-%s-%d", safe, port)
+	name := fmt.Sprintf("vks-m-%s-%d", safe, port)
 	if len(name) > 50 {
 		name = name[:50]
 	}

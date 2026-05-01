@@ -17,7 +17,7 @@ func TestSynthPoolName_Deterministic(t *testing.T) {
 	n1 := gateway.SynthPoolName("12345678-aaaa", 0, backends)
 	n2 := gateway.SynthPoolName("12345678-aaaa", 0, backends)
 	assert.Equal(t, n1, n2)
-	assert.True(t, strings.HasPrefix(n1, "gw_12345678_0_"))
+	assert.True(t, strings.HasPrefix(n1, "vks-pool-12345678-0-"))
 	assert.LessOrEqual(t, len(n1), 50)
 }
 

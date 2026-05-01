@@ -43,7 +43,7 @@ func BuildPolicies(
 		for mi, m := range matches {
 			l7 := buildL7Rules(string(h), m, lrcs)
 			p := vksv1alpha1.Policy{
-				Name:    fmt.Sprintf("p_%s_%d_%d_%d", uid, ruleIdx, hi, mi),
+				Name:    fmt.Sprintf("vks-pol-%s-%d-%d-%d", uid, ruleIdx, hi, mi),
 				L7Rules: l7,
 			}
 			switch {

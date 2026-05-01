@@ -67,10 +67,10 @@ func TestVngcloudListenerName(t *testing.T) {
 	cases := []struct {
 		in, want string
 	}{
-		{"http", "gw-http"},        // 4 chars → prefix to clear 5-char floor
-		{"x", "gw-x"},              // very short → prefix
-		{"https", "https"},         // already ≥5 → unchanged
-		{"my-listener", "my-listener"}, // longer → unchanged
+		{"http", "vks-http"},               // 4 chars → vks- prefix → 8 chars
+		{"x", "vks-x"},                     // 1 char → vks- prefix → 5 chars (already meets floor)
+		{"https", "vks-https"},             // 5 chars → vks- prefix → 9 chars
+		{"my-listener", "vks-my-listener"}, // longer → still prefixed
 	}
 	for _, c := range cases {
 		t.Run(c.in, func(t *testing.T) {

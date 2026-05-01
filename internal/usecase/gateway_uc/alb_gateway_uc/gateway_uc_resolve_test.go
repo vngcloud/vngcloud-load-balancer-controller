@@ -140,8 +140,9 @@ func TestResolve_InvalidListener_IsSkipped(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	assert.Len(t, res.lbSpec.Listeners, 1)
-	// "good" is 4 chars; vngcloud requires ≥5, so build_listener prefixes "gw-".
-	assert.Equal(t, "gw-good", res.lbSpec.Listeners[0].Name)
+	// All controller-managed names carry the "vks-" prefix (vngcloud-side
+	// identification + clears the 5-char minimum).
+	assert.Equal(t, "vks-good", res.lbSpec.Listeners[0].Name)
 }
 
 func TestResolve_BadGroupKind_OnClassRef_ReturnsError(t *testing.T) {

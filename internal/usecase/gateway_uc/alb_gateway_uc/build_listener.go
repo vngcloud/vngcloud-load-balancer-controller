@@ -78,16 +78,15 @@ func BuildListener(l gwv1.Listener, lbcL *vksv1alpha1.Listener, certs CertSource
 }
 
 // vngcloudListenerName converts a Gateway listener name into a vngcloud-acceptable
-// listener name. vngcloud requires 5–50 chars and accepts [a-zA-Z0-9_.-]. We prefix
-// short names with "gw-" to clear the 5-char floor while keeping the original visible
-// for debuggability. Names already ≥ 5 chars pass through unchanged.
+// listener name. vngcloud requires 5–50 chars and accepts [a-zA-Z0-9_.-]. Every
+// produced name is prefixed with "vks-" so all controller-managed resources are
+// identifiable on the vngcloud side. Names that overflow 50 chars are truncated.
 func vngcloudListenerName(gwListenerName string) string {
 	const minLen = 5
 	const maxLen = 50
-	const prefix = "gw-"
-	out := gwListenerName
-	if len(out) < minLen {
-		out = prefix + out
+	out := "vks-" + gwListenerName
+	for len(out) < minLen {
+		out += "-"
 	}
 	if len(out) > maxLen {
 		out = out[:maxLen]

@@ -40,6 +40,7 @@ func TestSynthesizeMembers_AllSameWeight_AllOne(t *testing.T) {
 	for _, m := range members {
 		assert.NotNil(t, m.Weight)
 		assert.GreaterOrEqual(t, *m.Weight, 1)
+		assert.Contains(t, m.Name, "vks-m-", "all controller-managed names must carry the vks- prefix")
 	}
 }
 
