@@ -5079,6 +5079,74 @@ func (_c *MockK8sRepository_GetGlobalLoadBalancerConfig_Call) RunAndReturn(run f
 	return _c
 }
 
+// GetHTTPRoute provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) GetHTTPRoute(ctx context.Context, n types.NamespacedName) (*v10.HTTPRoute, error) {
+	ret := _mock.Called(ctx, n)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetHTTPRoute")
+	}
+
+	var r0 *v10.HTTPRoute
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) (*v10.HTTPRoute, error)); ok {
+		return returnFunc(ctx, n)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, types.NamespacedName) *v10.HTTPRoute); ok {
+		r0 = returnFunc(ctx, n)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*v10.HTTPRoute)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, types.NamespacedName) error); ok {
+		r1 = returnFunc(ctx, n)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockK8sRepository_GetHTTPRoute_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetHTTPRoute'
+type MockK8sRepository_GetHTTPRoute_Call struct {
+	*mock.Call
+}
+
+// GetHTTPRoute is a helper method to define mock.On call
+//   - ctx context.Context
+//   - n types.NamespacedName
+func (_e *MockK8sRepository_Expecter) GetHTTPRoute(ctx interface{}, n interface{}) *MockK8sRepository_GetHTTPRoute_Call {
+	return &MockK8sRepository_GetHTTPRoute_Call{Call: _e.mock.On("GetHTTPRoute", ctx, n)}
+}
+
+func (_c *MockK8sRepository_GetHTTPRoute_Call) Run(run func(ctx context.Context, n types.NamespacedName)) *MockK8sRepository_GetHTTPRoute_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 types.NamespacedName
+		if args[1] != nil {
+			arg1 = args[1].(types.NamespacedName)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_GetHTTPRoute_Call) Return(hTTPRoute *v10.HTTPRoute, err error) *MockK8sRepository_GetHTTPRoute_Call {
+	_c.Call.Return(hTTPRoute, err)
+	return _c
+}
+
+func (_c *MockK8sRepository_GetHTTPRoute_Call) RunAndReturn(run func(ctx context.Context, n types.NamespacedName) (*v10.HTTPRoute, error)) *MockK8sRepository_GetHTTPRoute_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetIngress provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) GetIngress(ctx context.Context, n types.NamespacedName) (*v11.Ingress, error) {
 	ret := _mock.Called(ctx, n)
@@ -6215,6 +6283,69 @@ func (_c *MockK8sRepository_PatchLoadBalancerConfig_Call) Return(err error) *Moc
 }
 
 func (_c *MockK8sRepository_PatchLoadBalancerConfig_Call) RunAndReturn(run func(ctx context.Context, lbc *v1alpha1.LoadBalancerConfig, patch client.Patch, opts ...client.PatchOption) error) *MockK8sRepository_PatchLoadBalancerConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PatchMutateGateway provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) PatchMutateGateway(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool) error {
+	ret := _mock.Called(ctx, gw, mutateFunc)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PatchMutateGateway")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.Gateway, func(ctx context.Context, obj *v10.Gateway) bool) error); ok {
+		r0 = returnFunc(ctx, gw, mutateFunc)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_PatchMutateGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PatchMutateGateway'
+type MockK8sRepository_PatchMutateGateway_Call struct {
+	*mock.Call
+}
+
+// PatchMutateGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gw *v10.Gateway
+//   - mutateFunc func(ctx context.Context, obj *v10.Gateway) bool
+func (_e *MockK8sRepository_Expecter) PatchMutateGateway(ctx interface{}, gw interface{}, mutateFunc interface{}) *MockK8sRepository_PatchMutateGateway_Call {
+	return &MockK8sRepository_PatchMutateGateway_Call{Call: _e.mock.On("PatchMutateGateway", ctx, gw, mutateFunc)}
+}
+
+func (_c *MockK8sRepository_PatchMutateGateway_Call) Run(run func(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool)) *MockK8sRepository_PatchMutateGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.Gateway
+		if args[1] != nil {
+			arg1 = args[1].(*v10.Gateway)
+		}
+		var arg2 func(ctx context.Context, obj *v10.Gateway) bool
+		if args[2] != nil {
+			arg2 = args[2].(func(ctx context.Context, obj *v10.Gateway) bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateGateway_Call) Return(err error) *MockK8sRepository_PatchMutateGateway_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_PatchMutateGateway_Call) RunAndReturn(run func(ctx context.Context, gw *v10.Gateway, mutateFunc func(ctx context.Context, obj *v10.Gateway) bool) error) *MockK8sRepository_PatchMutateGateway_Call {
 	_c.Call.Return(run)
 	return _c
 }

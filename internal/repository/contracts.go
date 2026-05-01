@@ -157,9 +157,11 @@ type K8sRepository interface {
 
 	// Gateway API (sigs.k8s.io/gateway-api)
 	GetGateway(ctx context.Context, n types.NamespacedName) (*gwv1.Gateway, error)
+	PatchMutateGateway(ctx context.Context, gw *gwv1.Gateway, mutateFunc func(ctx context.Context, obj *gwv1.Gateway) bool) error
 	PatchMutateStatusGateway(ctx context.Context, gw *gwv1.Gateway, mutateFunc func(ctx context.Context, obj *gwv1.Gateway) bool) error
 	GetGatewayClass(ctx context.Context, name string) (*gwv1.GatewayClass, error)
 	PatchMutateStatusGatewayClass(ctx context.Context, gwc *gwv1.GatewayClass, mutateFunc func(ctx context.Context, obj *gwv1.GatewayClass) bool) error
+	GetHTTPRoute(ctx context.Context, n types.NamespacedName) (*gwv1.HTTPRoute, error)
 	ListHTTPRoute(ctx context.Context, list *gwv1.HTTPRouteList, opts ...client.ListOption) error
 	PatchMutateStatusHTTPRoute(ctx context.Context, route *gwv1.HTTPRoute, mutateFunc func(ctx context.Context, obj *gwv1.HTTPRoute) bool) error
 	ListReferenceGrant(ctx context.Context, list *gwv1beta1.ReferenceGrantList, opts ...client.ListOption) error

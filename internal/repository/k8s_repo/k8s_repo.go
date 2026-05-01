@@ -447,6 +447,16 @@ func (r *k8sRepository) GetGateway(ctx context.Context, n types.NamespacedName) 
 	return gw, err
 }
 
+func (r *k8sRepository) PatchMutateGateway(
+	ctx context.Context,
+	gw *gwv1.Gateway,
+	mutate func(ctx context.Context, obj *gwv1.Gateway) bool,
+) error {
+	return r.patchMutateObject(ctx, gw, func(ctx context.Context, obj client.Object) bool {
+		return mutate(ctx, obj.(*gwv1.Gateway))
+	})
+}
+
 func (r *k8sRepository) PatchMutateStatusGateway(
 	ctx context.Context,
 	gw *gwv1.Gateway,
@@ -471,6 +481,12 @@ func (r *k8sRepository) PatchMutateStatusGatewayClass(
 	return r.patchMutateStatusObject(ctx, gwc, func(ctx context.Context, obj client.Object) bool {
 		return mutate(ctx, obj.(*gwv1.GatewayClass))
 	})
+}
+
+func (r *k8sRepository) GetHTTPRoute(ctx context.Context, n types.NamespacedName) (*gwv1.HTTPRoute, error) {
+	rt := &gwv1.HTTPRoute{}
+	err := r.client.Get(ctx, n, rt)
+	return rt, err
 }
 
 func (r *k8sRepository) ListHTTPRoute(ctx context.Context, list *gwv1.HTTPRouteList, opts ...client.ListOption) error {

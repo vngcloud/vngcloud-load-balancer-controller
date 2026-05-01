@@ -180,6 +180,8 @@ func TestEnsure_DelegatesToResolver_HappyPath(t *testing.T) {
 	// Deploy: no existing LBC → create.
 	k8s.EXPECT().ListLoadBalancerConfig(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	k8s.EXPECT().CreateLoadBalancerConfig(mock.Anything, mock.Anything).Return(nil)
+	// Status: Accepted=True + Programmed=True patched after deploy.
+	k8s.EXPECT().PatchMutateStatusGateway(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := newALBUC(k8s).EnsureALBGatewayUseCase(context.Background(),
 		ctrl.Request{NamespacedName: types.NamespacedName{Name: "g1", Namespace: "ns"}})

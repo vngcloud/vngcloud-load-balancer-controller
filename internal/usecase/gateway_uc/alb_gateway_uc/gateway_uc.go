@@ -85,8 +85,7 @@ func (uc *albGatewayUseCase) EnsureALBGatewayUseCase(ctx context.Context, req ct
 	if _, err := uc.deployLB(ctx, res.gateway, res.lbSpec); err != nil {
 		return err
 	}
-	// TODO(C9e): write Accepted/Programmed/per-listener Gateway status.
-	return nil
+	return uc.markAcceptedAndProgrammed(ctx, res.gateway)
 }
 
 // DeleteALBGatewayUseCase tears down resources owned by the Gateway. The
@@ -207,8 +206,3 @@ func (uc *albGatewayUseCase) deleteNodeSecurityGroup(ctx context.Context, gw *gw
 	return stillExist, nil
 }
 
-func (uc *albGatewayUseCase) EnqueueParentGatewayForRoute(ctx context.Context, routeRef ctrl.Request) error {
-	// Filled in by Task C9.
-	_ = routeRef
-	return nil
-}
