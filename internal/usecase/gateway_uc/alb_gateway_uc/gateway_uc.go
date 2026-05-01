@@ -65,11 +65,10 @@ func NewALBGatewayUseCase(
 }
 
 func (uc *albGatewayUseCase) InitALBGatewayUseCase(ctx context.Context) error {
-	_ = contexts.NewContext(ctx).Log()
-	// Phase-1 init shares the same flow as IngressUseCase.Init:
-	// resolve clusterId from node labels and pull default network info from the SDK.
-	// Filled in alongside C9 wiring; the reconciler tolerates Init errors with backoff.
-	return nil
+	uc.initOnce.Do(func() {
+		uc.initErr = uc.initImpl(ctx)
+	})
+	return uc.initErr
 }
 
 func (uc *albGatewayUseCase) EnsureALBGatewayUseCase(ctx context.Context, req ctrl.Request) error {
@@ -83,9 +82,10 @@ func (uc *albGatewayUseCase) EnsureALBGatewayUseCase(ctx context.Context, req ct
 	if err := uc.attachHTTPRoutes(ctx, res.gateway, res.lbSpec); err != nil {
 		return err
 	}
-	// TODO(C9d): create or patch the LoadBalancerConfig CRD from res.lbSpec.
+	if _, err := uc.deployLB(ctx, res.gateway, res.lbSpec); err != nil {
+		return err
+	}
 	// TODO(C9e): write Accepted/Programmed/per-listener Gateway status.
-	_ = res
 	return nil
 }
 
