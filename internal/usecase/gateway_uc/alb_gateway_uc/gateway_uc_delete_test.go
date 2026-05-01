@@ -21,6 +21,10 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 )
 
+// test helper kept generic — name is parameterized so future per-test
+// distinctions don't have to refactor every caller.
+//
+//nolint:unparam // intentional generality
 func newGW(name, ns, uid string) *gwv1.Gateway {
 	return &gwv1.Gateway{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, UID: types.UID(uid)},

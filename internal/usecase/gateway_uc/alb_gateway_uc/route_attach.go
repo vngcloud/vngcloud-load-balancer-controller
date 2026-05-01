@@ -34,7 +34,7 @@ func routesAttachedToGateway(routes []gwv1.HTTPRoute, gw *gwv1.Gateway) []attach
 }
 
 func matchedParentRefs(route *gwv1.HTTPRoute, gw *gwv1.Gateway) []gwv1.ParentReference {
-	var out []gwv1.ParentReference
+	out := make([]gwv1.ParentReference, 0, len(route.Spec.ParentRefs))
 	for _, p := range route.Spec.ParentRefs {
 		if p.Group != nil && *p.Group != "" && string(*p.Group) != gwv1.GroupName {
 			continue

@@ -71,7 +71,7 @@ func (r *GatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			if ref.Namespace != nil {
 				ns = string(*ref.Namespace)
 			}
-			if err := r.Get(ctx, types.NamespacedName{Namespace: ns, Name: string(ref.Name)}, lbc); err != nil {
+			if err := r.Get(ctx, types.NamespacedName{Namespace: ns, Name: ref.Name}, lbc); err != nil {
 				accepted = metav1.ConditionFalse
 				reason, msg = string(gwv1.GatewayClassReasonInvalidParameters),
 					"referenced LoadBalancerConfig not found: "+err.Error()

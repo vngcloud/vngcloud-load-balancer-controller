@@ -22,18 +22,19 @@ The 5-char floor is naturally satisfied because every prefix already exceeds it.
 ## Default LoadBalancer scheme
 
 The default `LoadBalancerConfig.spec.scheme` for a Gateway-provisioned LB is
-**`Internal`** — the cluster's internal-VPC network. This is the value of
-`loadBalancerOpts.defaultScheme` in the manager config (`pkg/config/config.go`,
-`Config.LoadBalancerOpts.DefaultScheme`). It applies whenever neither the
-class-level `LoadBalancerConfig.parametersRef` nor a per-Gateway
-`infrastructure.parametersRef` overrides it.
+**`Internet`** — public-facing with an Internet-routable IP. This is shipped via
+the Helm chart's [`values.yaml`](../../charts/vngcloud-load-balancer-controller/values.yaml)
+under `manager.config.loadBalancerOpts.defaultScheme` and consumed by the
+manager via `Config.LoadBalancerOpts.DefaultScheme` in `pkg/config/config.go`.
+It applies whenever neither the class-level `LoadBalancerConfig.parametersRef`
+nor a per-Gateway `infrastructure.parametersRef` overrides it.
 
 Valid scheme values (per the LBC CRD enum):
 
 | Scheme | Use |
 |---|---|
-| `Internal` (default) | Cluster-internal VPC traffic only — typical for east-west or service mesh exposure |
-| `Internet` | Public-facing with an Internet-routable IP |
+| `Internet` (default) | Public-facing with an Internet-routable IP |
+| `Internal` | Cluster-internal VPC traffic only — east-west or service-mesh exposure |
 | `InterVPC` | VPC-to-VPC inside vngcloud (set `privateSubnetId` + `privateZoneId` on the LBC) |
 
 To override, point the GatewayClass or the Gateway at a `LoadBalancerConfig` with
@@ -42,20 +43,20 @@ the desired `scheme`:
 ```yaml
 apiVersion: vks.vngcloud.vn/v1alpha1
 kind: LoadBalancerConfig
-metadata: { name: alb-public }
+metadata: { name: alb-internal }
 spec:
   type: Layer 7
-  scheme: Internet
+  scheme: Internal
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
-metadata: { name: vngcloud-alb-public }
+metadata: { name: vngcloud-alb-internal }
 spec:
   controllerName: gateway.vks.vngcloud.vn/alb
   parametersRef:
     group: vks.vngcloud.vn
     kind: LoadBalancerConfig
-    name: alb-public
+    name: alb-internal
 ```
 
 **Linked specs:** [`docs/superpowers/specs/2026-04-30-gateway-api-design.md`](specs/2026-04-30-gateway-api-design.md), [`docs/superpowers/PHASE-1-SUMMARY.md`](PHASE-1-SUMMARY.md)

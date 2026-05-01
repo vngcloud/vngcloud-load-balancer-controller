@@ -11,6 +11,7 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/shared"
 )
 
+//nolint:unparam // test helper kept generic for future Service-name variation
 func mkTGC(name, target string, def *string, route, rule string, override *string) gatewayv1alpha1.TargetGroupConfig {
 	tgc := gatewayv1alpha1.TargetGroupConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns"},

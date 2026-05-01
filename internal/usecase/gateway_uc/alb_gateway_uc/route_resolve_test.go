@@ -19,12 +19,13 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 )
 
+//nolint:unparam // test helper kept generic for future cross-group/-kind cases
 func backendRef(group, kind, ns, name string, port int32, weight *int32) gwv1.HTTPBackendRef {
 	br := gwv1.HTTPBackendRef{
 		BackendRef: gwv1.BackendRef{
 			BackendObjectReference: gwv1.BackendObjectReference{
 				Name: gwv1.ObjectName(name),
-				Port: (*gwv1.PortNumber)(ptr.To(int32(port))),
+				Port: (*gwv1.PortNumber)(ptr.To(port)),
 			},
 			Weight: weight,
 		},

@@ -65,6 +65,8 @@ func kubectlMust(t *testing.T, args ...string) string {
 }
 
 // waitForGatewayAddress polls until Gateway.status.addresses[0].value is non-empty.
+//
+//nolint:unparam // helper kept generic for future scenarios
 func waitForGatewayAddress(t *testing.T, ns, name string, timeout time.Duration) string {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -94,7 +96,7 @@ func httpGet(addr, host string) (int, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	return resp.StatusCode, string(body), nil
 }
@@ -125,11 +127,11 @@ func applyManifest(t *testing.T, content string) {
 	if err != nil {
 		t.Fatalf("temp file: %v", err)
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 	if _, err := f.WriteString(content); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 	kubectlMust(t, "apply", "-f", f.Name())
 }
 
@@ -140,9 +142,9 @@ func deleteManifest(t *testing.T, content string) {
 	if err != nil {
 		return
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 	_, _ = f.WriteString(content)
-	f.Close()
+	_ = f.Close()
 	_, _ = kubectl(t, "delete", "-f", f.Name(), "--ignore-not-found=true", "--wait=false")
 }
 

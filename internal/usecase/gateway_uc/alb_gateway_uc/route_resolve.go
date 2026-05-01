@@ -33,6 +33,7 @@ import (
 // take the whole reconcile down; status surfacing is C9e's job.
 func (uc *albGatewayUseCase) resolveBackend(
 	ctx context.Context,
+	//nolint:unparam // routeKind is "HTTPRoute" today; carried as a param for Phase-2 extension
 	routeNS, routeName, routeKind string,
 	ruleName *string,
 	backend gwv1.HTTPBackendRef,

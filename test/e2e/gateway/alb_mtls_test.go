@@ -72,7 +72,7 @@ spec:
 		req.Host = host
 		resp, err := c.Do(req)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode < 400 {
 				t.Fatalf("expected 4xx without client cert, got %d", resp.StatusCode)
 			}
@@ -103,7 +103,7 @@ spec:
 		req.Host = host
 		resp, err := c.Do(req)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 				return
 			}

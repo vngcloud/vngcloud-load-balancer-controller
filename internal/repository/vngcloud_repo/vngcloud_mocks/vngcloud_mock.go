@@ -33,11 +33,17 @@ import (
 // before they hit a real load balancer warm-up cycle.
 //
 // kind is just for the error message ("listenerName", "members[i].name", ...).
+// validateVngcloudName mirrors the real vngcloud API validation. The error
+// strings end with a period because that's how the upstream service returns
+// them, and unit tests substring-match the verbatim message.
+//
+//nolint:staticcheck // ST1005: errors must mirror upstream wording exactly
 func validateVngcloudName(kind, value string) error {
 	const minLen = 5
 	const maxLen = 50
+	const msg = "%s: Only letters (a-z, A-Z, 0-9, '_', '-', '.') are allowed and must be between 5 and 50 characters."
 	if len(value) < minLen || len(value) > maxLen {
-		return fmt.Errorf("%s: Only letters (a-z, A-Z, 0-9, '_', '-', '.') are allowed and must be between 5 and 50 characters.", kind)
+		return fmt.Errorf(msg, kind)
 	}
 	for _, r := range value {
 		switch {
@@ -47,7 +53,7 @@ func validateVngcloudName(kind, value string) error {
 			r == '_', r == '-', r == '.':
 			continue
 		default:
-			return fmt.Errorf("%s: Only letters (a-z, A-Z, 0-9, '_', '-', '.') are allowed and must be between 5 and 50 characters.", kind)
+			return fmt.Errorf(msg, kind)
 		}
 	}
 	return nil
@@ -65,22 +71,11 @@ func validateHealthCheckProtocolFields(hm *loadbalancerv2.HealthMonitor) error {
 	if proto != "TCP" && proto != "PING-UDP" {
 		return nil
 	}
-	httpOnlySet := false
-	if hm.HealthCheckPath != nil && *hm.HealthCheckPath != "" {
-		httpOnlySet = true
-	}
-	if hm.HealthCheckMethod != nil && *hm.HealthCheckMethod != "" {
-		httpOnlySet = true
-	}
-	if hm.SuccessCode != nil && *hm.SuccessCode != "" {
-		httpOnlySet = true
-	}
-	if hm.DomainName != nil && *hm.DomainName != "" {
-		httpOnlySet = true
-	}
-	if hm.HttpVersion != nil && *hm.HttpVersion != "" {
-		httpOnlySet = true
-	}
+	httpOnlySet := (hm.HealthCheckPath != nil && *hm.HealthCheckPath != "") ||
+		(hm.HealthCheckMethod != nil && *hm.HealthCheckMethod != "") ||
+		(hm.SuccessCode != nil && *hm.SuccessCode != "") ||
+		(hm.DomainName != nil && *hm.DomainName != "") ||
+		(hm.HttpVersion != nil && *hm.HttpVersion != "")
 	if httpOnlySet {
 		return errors.New("If healthCheckProtocol field is TCP or PING-UDP, following fields cannot be specified: healthCheckPath, healthCheckMethod, successCode, domainName, httpVersion")
 	}

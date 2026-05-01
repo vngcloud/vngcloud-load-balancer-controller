@@ -40,7 +40,8 @@ func SynthPoolName(routeUID string, ruleIdx int, backends []BackendKey) string {
 	})
 	h := sha1.New()
 	for _, b := range sorted {
-		fmt.Fprintf(h, "%s/%s:%d:%d\n", b.Namespace, b.Name, b.Port, b.Weight)
+		// hash.Hash never returns errors; the err is for io.Writer parity.
+		_, _ = fmt.Fprintf(h, "%s/%s:%d:%d\n", b.Namespace, b.Name, b.Port, b.Weight)
 	}
 	sum := hex.EncodeToString(h.Sum(nil))[:5]
 	return fmt.Sprintf("vks-pool-%s-%d-%s", uid, ruleIdx, sum)

@@ -129,6 +129,8 @@ func buildRedirectURL(r gwv1.HTTPRequestRedirectFilter) string {
 // PolicyRuleType. Phase 1: vngcloud LB has only HOST_NAME and PATH rule types, so all
 // LRC-extension match types resolve to "" (skipped). When vngcloud adds Header/Query/
 // Method/SourceIP support, this mapping table is the only thing that needs updating.
+//
+//nolint:unparam // intentional Phase-1 stub; values become non-empty in Phase 3.
 func mapAdditionalMatchType(t string) loadbalancerv2.PolicyRuleType {
 	switch t {
 	case "Header", "QueryParam", "Method", "SourceIP":

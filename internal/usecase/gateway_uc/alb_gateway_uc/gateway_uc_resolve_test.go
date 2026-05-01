@@ -31,6 +31,7 @@ func newGWClass(name, controller string, paramRef *gwv1.ParametersReference) *gw
 	}
 }
 
+//nolint:unparam // test helper, name kept parameterized for future cases
 func newGWWithListeners(name, ns, class string, ls ...gwv1.Listener) *gwv1.Gateway {
 	return &gwv1.Gateway{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
