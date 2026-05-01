@@ -94,3 +94,17 @@ serviceAccount:
   automount: true
   create: true
   name: ""
+
+# Gateway API support (Phase 1: L7 ALB only).
+# When enabled, the chart installs the vngcloud-alb GatewayClass and the manager
+# starts the Gateway / HTTPRoute / TargetGroupConfig / ListenerRuleConfig reconcilers.
+# Requires the upstream Gateway API CRDs to be installed in the cluster:
+#   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
+# To turn on, also append --enable-gateway-api-alb=true to manager.manager.args.
+gatewayApi:
+  alb:
+    enabled: false
+    # Optional parametersRef on the GatewayClass — points at a cluster-scope
+    # LoadBalancerConfig used as the per-class default. Per-Gateway overrides go
+    # via Gateway.spec.infrastructure.parametersRef.
+    parametersRef: {}

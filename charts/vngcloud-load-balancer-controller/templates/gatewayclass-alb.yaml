@@ -1,0 +1,14 @@
+{{- if .Values.gatewayApi.alb.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: vngcloud-alb
+  labels:
+  {{- include "vngcloud-load-balancer-controller.labels" . | nindent 4 }}
+spec:
+  controllerName: gateway.vks.vngcloud.vn/alb
+  {{- with .Values.gatewayApi.alb.parametersRef }}
+  parametersRef:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
