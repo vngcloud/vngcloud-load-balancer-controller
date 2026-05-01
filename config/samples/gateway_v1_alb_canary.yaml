@@ -1,0 +1,36 @@
+# 90/10 weighted canary: traffic is split between v1 (90%) and v2 (10%) of the
+# same logical backend. The controller fuses both backends into a single
+# synthetic vngcloud pool with weight-scaled members.
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo-canary
+  namespace: default
+spec:
+  gatewayClassName: vngcloud-alb
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-canary-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: demo-canary
+  hostnames:
+  - demo.example.com
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: / }
+    backendRefs:
+    - name: demo-service-v1
+      port: 80
+      weight: 90
+    - name: demo-service-v2
+      port: 80
+      weight: 10

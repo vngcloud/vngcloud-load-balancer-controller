@@ -1,0 +1,21 @@
+# Extends an HTTPRoute rule with a Header match (vngcloud-specific extension).
+# Reference from an HTTPRoute filter:
+#   filters:
+#   - type: ExtensionRef
+#     extensionRef: { group: gateway.vks.vngcloud.vn, kind: ListenerRuleConfig, name: header-internal }
+#
+# Phase 1 note: vngcloud LB does not yet support Header rule types natively.
+# The controller accepts this manifest and surfaces a status condition; the
+# match is dropped from the policy until vngcloud LB ships native support.
+---
+apiVersion: gateway.vks.vngcloud.vn/v1alpha1
+kind: ListenerRuleConfig
+metadata:
+  name: header-internal
+  namespace: default
+spec:
+  additionalMatches:
+  - type: Header
+    name: X-Source
+    compare: CONTAINS
+    value: internal

@@ -1,0 +1,24 @@
+# Per-Service backend tuning. Selected by routes whose backendRefs name
+# this Service in the same namespace. Optional routeConfigurations[]
+# override DefaultConfig for specific routes / rules.
+---
+apiVersion: gateway.vks.vngcloud.vn/v1alpha1
+kind: TargetGroupConfig
+metadata:
+  name: demo-tgc
+  namespace: default
+spec:
+  targetReference:
+    name: demo-service
+  defaultConfig:
+    targetType: ip
+    poolAlgorithm: ROUND_ROBIN
+    enableStickySession: false
+    healthCheck:
+      protocol: HTTP
+      successCodes: "200-299"
+      healthCheckPath: /healthz
+      intervalSeconds: 10
+      timeoutSeconds: 3
+      healthyThreshold: 2
+      unhealthyThreshold: 3

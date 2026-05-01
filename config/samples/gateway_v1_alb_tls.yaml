@@ -1,0 +1,49 @@
+# HTTPS Gateway with TLS termination from a Kubernetes Secret.
+# The controller imports the Secret into a vngcloud certificate before listener apply.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-tls
+  namespace: default
+type: kubernetes.io/tls
+data:
+  tls.crt: REPLACE_WITH_BASE64_CERT
+  tls.key: REPLACE_WITH_BASE64_KEY
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo-tls
+  namespace: default
+spec:
+  gatewayClassName: vngcloud-alb
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+  - name: https
+    protocol: HTTPS
+    port: 443
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: demo-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-tls-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: demo-tls
+  hostnames:
+  - secure.example.com
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: / }
+    backendRefs:
+    - name: demo-service
+      port: 8080
