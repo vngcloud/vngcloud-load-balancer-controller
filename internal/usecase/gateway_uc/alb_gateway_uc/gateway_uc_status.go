@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/anngdinh/operator-helper/contexts"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -84,20 +85,61 @@ func (uc *albGatewayUseCase) gatherGatewayAddresses(ctx context.Context, gw *gwv
 	return out
 }
 
+// enqueueAllALBGatewaysInNamespace bumps the route-revision annotation on every
+// vngcloud-alb Gateway in `ns` so each reconciles and prunes any pool/policy
+// it owned that referenced a route now gone. Used when an HTTPRoute is deleted
+// — at that point we no longer have the route's parentRefs, so we fan out.
+func (uc *albGatewayUseCase) enqueueAllALBGatewaysInNamespace(ctx context.Context, ns string) error {
+	logger := contexts.NewContext(ctx).Log()
+
+	gws := &gwv1.GatewayList{}
+	if err := uc.k8sRepo.ListGateway(ctx, gws, client.InNamespace(ns)); err != nil {
+		return err
+	}
+	tick := strconv.FormatInt(time.Now().UnixNano(), 10)
+	for i := range gws.Items {
+		gw := &gws.Items[i]
+		gwc, gcerr := uc.k8sRepo.GetGatewayClass(ctx, string(gw.Spec.GatewayClassName))
+		if gcerr != nil || string(gwc.Spec.ControllerName) != domain.ControllerNameALB {
+			continue
+		}
+		if perr := uc.k8sRepo.PatchMutateGateway(ctx, gw, func(_ context.Context, fresh *gwv1.Gateway) bool {
+			if fresh.Annotations == nil {
+				fresh.Annotations = map[string]string{}
+			}
+			if fresh.Annotations[AnnotationRouteRevision] == tick {
+				return false
+			}
+			fresh.Annotations[AnnotationRouteRevision] = tick
+			return true
+		}); perr != nil {
+			logger.Warnf("failed to bump %s on gateway %s/%s after route delete: %v", AnnotationRouteRevision, gw.Namespace, gw.Name, perr)
+		}
+	}
+	return nil
+}
+
 // EnqueueParentGatewayForRoute fires a synthetic re-reconcile of every
 // vngcloud-alb Gateway named in the HTTPRoute's parentRefs by writing the
 // AnnotationRouteRevision annotation with a fresh tick. Foreign Gateways
 // (different controllerName) are skipped so we don't produce noise on
 // resources we don't own.
 //
-// Best-effort: per-Gateway failures are logged and skipped; a missing
-// HTTPRoute is treated as "already cleaned up" and returns nil.
+// Best-effort: per-Gateway failures are logged and skipped. When the
+// HTTPRoute itself is gone (deleted), we fan out to every vngcloud-alb
+// Gateway in the route's namespace so each has a chance to prune the
+// orphaned policies/pools belonging to the deleted route. This handles
+// the "delete HTTPRoute, sibling routes remain" scenario.
 func (uc *albGatewayUseCase) EnqueueParentGatewayForRoute(ctx context.Context, routeRef ctrl.Request) error {
 	logger := contexts.NewContext(ctx).Log()
 
 	rt, err := uc.k8sRepo.GetHTTPRoute(ctx, routeRef.NamespacedName)
 	if err != nil {
-		return client.IgnoreNotFound(err)
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		// Route deleted — fan out to every vngcloud-alb Gateway in the namespace.
+		return uc.enqueueAllALBGatewaysInNamespace(ctx, routeRef.Namespace)
 	}
 
 	tick := strconv.FormatInt(time.Now().UnixNano(), 10)

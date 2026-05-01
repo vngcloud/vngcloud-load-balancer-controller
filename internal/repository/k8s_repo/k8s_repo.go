@@ -447,6 +447,10 @@ func (r *k8sRepository) GetGateway(ctx context.Context, n types.NamespacedName) 
 	return gw, err
 }
 
+func (r *k8sRepository) ListGateway(ctx context.Context, list *gwv1.GatewayList, opts ...client.ListOption) error {
+	return r.client.List(ctx, list, opts...)
+}
+
 func (r *k8sRepository) PatchMutateGateway(
 	ctx context.Context,
 	gw *gwv1.Gateway,

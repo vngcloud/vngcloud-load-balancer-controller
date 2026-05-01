@@ -100,10 +100,16 @@ func TestEnqueueParent_SkipsForeignGatewayClass(t *testing.T) {
 		ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "ns", Name: "r1"}}))
 }
 
-func TestEnqueueParent_RouteNotFound_ReturnsNil(t *testing.T) {
+func TestEnqueueParent_RouteNotFound_FansOutToNamespace(t *testing.T) {
+	// Route is gone → controller fans out to every vngcloud-alb Gateway in the
+	// route's namespace so each prunes the orphaned policies/pools. No parents
+	// are recoverable, so it lists Gateways instead.
 	k8s := repomocks.NewMockK8sRepository(t)
 	k8s.EXPECT().GetHTTPRoute(mock.Anything, mock.Anything).
 		Return(nil, apierrors.NewNotFound(schema.GroupResource{Resource: "httproutes"}, "r1"))
+	// Empty list — nothing to enqueue, returns nil.
+	k8s.EXPECT().ListGateway(mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
 
 	uc := newALBUC(k8s)
 	assert.NoError(t, uc.EnqueueParentGatewayForRoute(context.Background(),

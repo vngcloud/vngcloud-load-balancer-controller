@@ -5555,6 +5555,78 @@ func (_c *MockK8sRepository_GetVngcloudGlobalLoadBalancer_Call) RunAndReturn(run
 	return _c
 }
 
+// ListGateway provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) ListGateway(ctx context.Context, list *v10.GatewayList, opts ...client.ListOption) error {
+	var tmpRet mock.Arguments
+	if len(opts) > 0 {
+		tmpRet = _mock.Called(ctx, list, opts)
+	} else {
+		tmpRet = _mock.Called(ctx, list)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListGateway")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v10.GatewayList, ...client.ListOption) error); ok {
+		r0 = returnFunc(ctx, list, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockK8sRepository_ListGateway_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListGateway'
+type MockK8sRepository_ListGateway_Call struct {
+	*mock.Call
+}
+
+// ListGateway is a helper method to define mock.On call
+//   - ctx context.Context
+//   - list *v10.GatewayList
+//   - opts ...client.ListOption
+func (_e *MockK8sRepository_Expecter) ListGateway(ctx interface{}, list interface{}, opts ...interface{}) *MockK8sRepository_ListGateway_Call {
+	return &MockK8sRepository_ListGateway_Call{Call: _e.mock.On("ListGateway",
+		append([]interface{}{ctx, list}, opts...)...)}
+}
+
+func (_c *MockK8sRepository_ListGateway_Call) Run(run func(ctx context.Context, list *v10.GatewayList, opts ...client.ListOption)) *MockK8sRepository_ListGateway_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v10.GatewayList
+		if args[1] != nil {
+			arg1 = args[1].(*v10.GatewayList)
+		}
+		var arg2 []client.ListOption
+		var variadicArgs []client.ListOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ListOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_ListGateway_Call) Return(err error) *MockK8sRepository_ListGateway_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockK8sRepository_ListGateway_Call) RunAndReturn(run func(ctx context.Context, list *v10.GatewayList, opts ...client.ListOption) error) *MockK8sRepository_ListGateway_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListGlobalLoadBalancerConfig provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) ListGlobalLoadBalancerConfig(ctx context.Context, list *v1alpha1.GlobalLoadBalancerConfigList, opts ...client.ListOption) error {
 	var tmpRet mock.Arguments
