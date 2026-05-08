@@ -31,9 +31,10 @@ func BuildListener(l gwv1.Listener, lbcL *vksv1alpha1.Listener, certs CertSource
 	}
 
 	out := &vksv1alpha1.Listener{
-		Name:         vngcloudListenerName(string(l.Name)),
-		Protocol:     proto,
-		ProtocolPort: int32(l.Port),
+		Name:          vngcloudListenerName(string(l.Name)),
+		Protocol:      proto,
+		ProtocolPort:  int32(l.Port),
+		InsertHeaders: defaultInsertHeaders(),
 	}
 
 	if lbcL != nil {
@@ -41,7 +42,9 @@ func BuildListener(l gwv1.Listener, lbcL *vksv1alpha1.Listener, certs CertSource
 		out.TimeoutMember = lbcL.TimeoutMember
 		out.TimeoutConnection = lbcL.TimeoutConnection
 		out.AllowedCidrs = lbcL.AllowedCidrs
-		out.InsertHeaders = lbcL.InsertHeaders
+		if lbcL.InsertHeaders != nil {
+			out.InsertHeaders = lbcL.InsertHeaders
+		}
 		out.SSLPolicy = lbcL.SSLPolicy
 		out.ALPNPolicy = lbcL.ALPNPolicy
 		out.ClientCertificateId = lbcL.ClientCertificateId
@@ -94,6 +97,18 @@ func vngcloudListenerName(gwListenerName string) string {
 		out = out[:maxLen]
 	}
 	return out
+}
+
+// defaultInsertHeaders returns the X-Forwarded-* headers vngcloud listeners are
+// created with by default. Matches Ingress's buildAnnotationInsertHeaders so that
+// a Gateway-managed listener doesn't churn on every reconcile when no LBC override
+// is supplied. Returned slice is sorted by HeaderName for deterministic diffs.
+func defaultInsertHeaders() []vksv1alpha1.InsertHeader {
+	return []vksv1alpha1.InsertHeader{
+		{HeaderName: "X-Forwarded-For", HeaderValue: "true"},
+		{HeaderName: "X-Forwarded-Port", HeaderValue: "true"},
+		{HeaderName: "X-Forwarded-Proto", HeaderValue: "true"},
+	}
 }
 
 func mapProtocol(p gwv1.ProtocolType) (loadbalancerv2.ListenerProtocol, error) {
