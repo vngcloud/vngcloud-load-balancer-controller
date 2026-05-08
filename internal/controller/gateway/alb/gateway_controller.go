@@ -7,6 +7,7 @@ import (
 
 	"github.com/anngdinh/operator-helper/contexts"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -105,12 +106,122 @@ func (r *GatewayReconciler) SetupWithManager(mgr manager.Manager) error {
 		},
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
+	// Watch Services so a Service created (or deleted, or port-edited) AFTER
+	// an HTTPRoute that referenced it triggers a Gateway reconcile. Without
+	// this, route.status.parents[].conditions[ResolvedRefs] stays stale at
+	// BackendNotFound and the LB pool never picks up the now-resolvable
+	// backend. Map fn fan-outs to every vngcloud-alb Gateway whose attached
+	// HTTPRoutes reference this Service.
+	serviceToGateways := handler.EnqueueRequestsFromMapFunc(r.mapServiceToGateways)
+	servicePred := predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return true },
+		DeleteFunc: func(_ event.DeleteEvent) bool { return true },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldS, ok1 := e.ObjectOld.(*corev1.Service)
+			newS, ok2 := e.ObjectNew.(*corev1.Service)
+			if !ok1 || !ok2 {
+				return false
+			}
+			return !equality.Semantic.DeepEqual(oldS.Spec, newS.Spec)
+		},
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1.Gateway{}).
 		Watches(&v1alpha1.LoadBalancerConfig{}, lbcToGateway, builder.WithPredicates(lbcPred)).
+		Watches(&corev1.Service{}, serviceToGateways, builder.WithPredicates(servicePred)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrent}).
 		Named("gateway-alb").
 		Complete(r)
+}
+
+// mapServiceToGateways returns reconcile requests for every vngcloud-alb
+// Gateway whose attached HTTPRoutes reference the changed Service as a
+// backendRef. The function tolerates list/get errors silently (returning
+// fewer requests is safer than panicking inside an event handler).
+func (r *GatewayReconciler) mapServiceToGateways(ctx context.Context, obj client.Object) []reconcile.Request {
+	svc, ok := obj.(*corev1.Service)
+	if !ok {
+		return nil
+	}
+	routes := &gwv1.HTTPRouteList{}
+	if err := r.Client.List(ctx, routes); err != nil {
+		return nil
+	}
+	seen := map[types.NamespacedName]struct{}{}
+	out := []reconcile.Request{}
+	for i := range routes.Items {
+		rt := &routes.Items[i]
+		if !routeReferencesService(rt, svc.Namespace, svc.Name) {
+			continue
+		}
+		for _, p := range rt.Spec.ParentRefs {
+			if !isGatewayParentRef(p) {
+				continue
+			}
+			ns := rt.Namespace
+			if p.Namespace != nil {
+				ns = string(*p.Namespace)
+			}
+			key := types.NamespacedName{Namespace: ns, Name: string(p.Name)}
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			gw := &gwv1.Gateway{}
+			if err := r.Client.Get(ctx, key, gw); err != nil {
+				continue
+			}
+			gwc := &gwv1.GatewayClass{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Name: string(gw.Spec.GatewayClassName)}, gwc); err != nil {
+				continue
+			}
+			if string(gwc.Spec.ControllerName) != domain.ControllerNameALB {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, reconcile.Request{NamespacedName: key})
+		}
+	}
+	return out
+}
+
+// routeReferencesService reports whether any backendRef in route names the
+// given Service (group=core, kind=Service or unset). Cross-namespace refs
+// are honored: a backendRef with explicit Namespace points to that Service
+// regardless of the route's own namespace.
+func routeReferencesService(route *gwv1.HTTPRoute, svcNS, svcName string) bool {
+	for _, rule := range route.Spec.Rules {
+		for _, backend := range rule.BackendRefs {
+			ref := backend.BackendObjectReference
+			if ref.Group != nil && *ref.Group != "" {
+				continue
+			}
+			if ref.Kind != nil && *ref.Kind != "" && *ref.Kind != "Service" {
+				continue
+			}
+			ns := route.Namespace
+			if ref.Namespace != nil {
+				ns = string(*ref.Namespace)
+			}
+			if ns == svcNS && string(ref.Name) == svcName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isGatewayParentRef returns true when the parentRef points at a Gateway
+// (group=gateway.networking.k8s.io, kind=Gateway). Both Group and Kind are
+// optional; the Gateway-API default is Gateway when unset.
+func isGatewayParentRef(p gwv1.ParentReference) bool {
+	if p.Group != nil && *p.Group != "" && string(*p.Group) != gwv1.GroupName {
+		return false
+	}
+	if p.Kind != nil && *p.Kind != "" && string(*p.Kind) != "Gateway" {
+		return false
+	}
+	return true
 }
 
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
