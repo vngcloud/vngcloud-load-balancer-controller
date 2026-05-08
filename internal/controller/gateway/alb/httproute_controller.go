@@ -2,9 +2,7 @@ package alb
 
 import (
 	"context"
-	"time"
 
-	"github.com/anngdinh/operator-helper/contexts"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -14,7 +12,6 @@ import (
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase"
-	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/errs"
 	metricsutil "github.com/vngcloud/vngcloud-load-balancer-controller/pkg/metrics/util"
 )
 
@@ -22,9 +19,14 @@ import (
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes/status,verbs=update;patch
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=referencegrants,verbs=get;list;watch
 
-// HTTPRouteReconciler is intentionally thin: it does not write to vngcloud directly.
-// Every HTTPRoute change enqueues the parent Gateway via the use-case so all LB
-// mutations stay serialized through one writer.
+// HTTPRouteReconciler exists only to bump the per-route reconcile metric.
+// All routing-relevant behavior lives on the Gateway controller, which
+// directly Watches HTTPRoutes (see gateway_controller.go SetupWithManager).
+//
+// Earlier revisions of this reconciler PATCHed a route-revision annotation
+// on the parent Gateway to force a reconcile; that produced one API write
+// per route per startup, which was wasted I/O. The direct Watches replaced
+// it with an in-memory workqueue add.
 type HTTPRouteReconciler struct {
 	Client            client.Client
 	Scheme            *runtime.Scheme
@@ -42,23 +44,15 @@ func NewHTTPRouteReconciler(
 }
 
 func (r *HTTPRouteReconciler) SetupWithManager(mgr manager.Manager) error {
-	// GenerationChangedPredicate skips updates whose .metadata.generation
-	// didn't change — i.e., status-only writes. This is essential because
-	// the Gateway use case writes route.Status.Parents on every reconcile;
-	// without this filter our own writes would fire the route reconciler,
-	// which bumps the parent gateway's route-revision annotation, which
-	// fires another gateway reconcile — an infinite status-write loop.
+	// GenerationChangedPredicate filters out status-only updates so we
+	// don't increment the metric on our own status writes.
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1.HTTPRoute{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("httproute-alb").
 		Complete(r)
 }
 
-func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *HTTPRouteReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.ReconcileCounters.IncrementHTTPRoute(req.NamespacedName)
-	ctx = contexts.NewContext(ctx).SetLogName("httproute/" + req.Namespace + "/" + req.Name).GetContext()
-	logger := contexts.NewContext(ctx).Log()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-	return errs.HandleReconcileError(r.GatewayUseCase.EnqueueParentGatewayForRoute(ctx, req), logger)
+	return ctrl.Result{}, nil
 }

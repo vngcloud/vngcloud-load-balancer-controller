@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/client-go/util/workqueue"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
@@ -126,13 +127,83 @@ func (r *GatewayReconciler) SetupWithManager(mgr manager.Manager) error {
 		},
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
+	// Watch HTTPRoutes directly. On Update we map BOTH old and new parentRefs
+	// so a route that changes parent (gw-A → gw-B) reconciles A (to prune
+	// orphan pools) and B (to attach the new route). Replaces the older
+	// pattern of bumping a route-revision annotation on the gateway, which
+	// produced needless PATCH writes — every event flows through the
+	// in-memory workqueue (deduped by key).
+	routeHandler := handler.Funcs{
+		CreateFunc: func(ctx context.Context, e event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			for _, req := range r.mapHTTPRouteToGateways(ctx, e.Object) {
+				q.Add(req)
+			}
+		},
+		UpdateFunc: func(ctx context.Context, e event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			if e.ObjectOld.GetGeneration() == e.ObjectNew.GetGeneration() {
+				return
+			}
+			for _, req := range r.mapHTTPRouteToGateways(ctx, e.ObjectOld) {
+				q.Add(req)
+			}
+			for _, req := range r.mapHTTPRouteToGateways(ctx, e.ObjectNew) {
+				q.Add(req)
+			}
+		},
+		DeleteFunc: func(ctx context.Context, e event.DeleteEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			for _, req := range r.mapHTTPRouteToGateways(ctx, e.Object) {
+				q.Add(req)
+			}
+		},
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1.Gateway{}).
 		Watches(&v1alpha1.LoadBalancerConfig{}, lbcToGateway, builder.WithPredicates(lbcPred)).
 		Watches(&corev1.Service{}, serviceToGateways, builder.WithPredicates(servicePred)).
+		Watches(&gwv1.HTTPRoute{}, routeHandler).
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrent}).
 		Named("gateway-alb").
 		Complete(r)
+}
+
+// mapHTTPRouteToGateways extracts parentRefs from an HTTPRoute object and
+// returns reconcile requests for each parent Gateway whose GatewayClass is
+// vngcloud-alb. Used by the HTTPRoute Watches handler to enqueue parent
+// gateways without needing the older annotation-bump pattern.
+func (r *GatewayReconciler) mapHTTPRouteToGateways(ctx context.Context, obj client.Object) []reconcile.Request {
+	rt, ok := obj.(*gwv1.HTTPRoute)
+	if !ok {
+		return nil
+	}
+	seen := map[types.NamespacedName]struct{}{}
+	out := []reconcile.Request{}
+	for _, p := range rt.Spec.ParentRefs {
+		if !isGatewayParentRef(p) {
+			continue
+		}
+		ns := rt.Namespace
+		if p.Namespace != nil {
+			ns = string(*p.Namespace)
+		}
+		key := types.NamespacedName{Namespace: ns, Name: string(p.Name)}
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		gw := &gwv1.Gateway{}
+		if err := r.Client.Get(ctx, key, gw); err != nil {
+			continue
+		}
+		gwc := &gwv1.GatewayClass{}
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: string(gw.Spec.GatewayClassName)}, gwc); err != nil {
+			continue
+		}
+		if string(gwc.Spec.ControllerName) != domain.ControllerNameALB {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, reconcile.Request{NamespacedName: key})
+	}
+	return out
 }
 
 // mapServiceToGateways returns reconcile requests for every vngcloud-alb
