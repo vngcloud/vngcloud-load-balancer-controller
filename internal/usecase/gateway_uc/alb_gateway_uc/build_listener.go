@@ -4,11 +4,9 @@ import (
 	"fmt"
 
 	loadbalancerv2 "github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/loadbalancer/v2"
-	"k8s.io/utils/ptr"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	vksv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
-	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 )
 
 // CertSource resolves a Gateway listener's TLS certificateRef to a vngcloud listener
@@ -73,7 +71,11 @@ func BuildListener(l gwv1.Listener, lbcL *vksv1alpha1.Listener, certs CertSource
 		}
 	}
 
-	out.DefaultPoolName = ptr.To(domain.DEFAULT_NAME_DEFAULT_POOL)
+	// Intentionally do NOT set out.DefaultPoolName.
+	// Gateway-API has no "default backend" concept — every routing decision
+	// comes from an HTTPRoute, so listeners with zero attached routes correctly
+	// return 503 from vngcloud. Setting a stale "vks_default_pool" reference
+	// here would mislead operators reading the LBC spec.
 	return out, nil
 }
 
