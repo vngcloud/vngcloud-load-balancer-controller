@@ -196,6 +196,12 @@ func (uc *albGatewayUseCase) writeHTTPRouteStatuses(ctx context.Context, acc *ro
 // Entries in the existing Status.Parents whose parentRef is no longer in
 // Spec.ParentRefs get dropped. Returns true when the new Parents list differs
 // from the existing one.
+//
+// LastTransitionTime is inherited from the prior matching condition when the
+// Status (True/False) doesn't change — this prevents a status-write loop where
+// every gateway reconcile would otherwise bump the timestamp, fire the route
+// reconciler, bump the gateway's route-revision annotation, and fire another
+// gateway reconcile.
 func mergeRouteParents(fresh *gwv1.HTTPRoute, rep *routeReport) bool {
 	gen := fresh.Generation
 	existing := map[parentRefKey]gwv1.RouteParentStatus{}
@@ -207,7 +213,7 @@ func mergeRouteParents(fresh *gwv1.HTTPRoute, rep *routeReport) bool {
 	for _, pref := range fresh.Spec.ParentRefs {
 		key := keyFromParentRef(pref, fresh.Namespace)
 		if pr, mine := rep.parents[key]; mine {
-			out = append(out, buildOurRouteParentStatus(pref, pr, gen))
+			out = append(out, buildOurRouteParentStatus(pref, pr, gen, existing[key]))
 			continue
 		}
 		if ps, ok := existing[key]; ok {
@@ -222,10 +228,10 @@ func mergeRouteParents(fresh *gwv1.HTTPRoute, rep *routeReport) bool {
 	return true
 }
 
-func buildOurRouteParentStatus(pref gwv1.ParentReference, pr *parentReport, gen int64) gwv1.RouteParentStatus {
+func buildOurRouteParentStatus(pref gwv1.ParentReference, pr *parentReport, gen int64, prior gwv1.RouteParentStatus) gwv1.RouteParentStatus {
 	conds := []metav1.Condition{
-		newRouteCondition(string(gwv1.RouteConditionAccepted), pr.accepted, pr.acceptedReason, pr.acceptedMessage, gen),
-		newRouteCondition(string(gwv1.RouteConditionResolvedRefs), pr.resolvedRefs, pr.resolvedRefsReason, pr.resolvedRefsMessage, gen),
+		newRouteCondition(string(gwv1.RouteConditionAccepted), pr.accepted, pr.acceptedReason, pr.acceptedMessage, gen, prior.Conditions),
+		newRouteCondition(string(gwv1.RouteConditionResolvedRefs), pr.resolvedRefs, pr.resolvedRefsReason, pr.resolvedRefsMessage, gen, prior.Conditions),
 	}
 	return gwv1.RouteParentStatus{
 		ParentRef:      pref,
@@ -234,10 +240,21 @@ func buildOurRouteParentStatus(pref gwv1.ParentReference, pr *parentReport, gen 
 	}
 }
 
-func newRouteCondition(t string, ok bool, reason, msg string, gen int64) metav1.Condition {
+// newRouteCondition builds a metav1.Condition. When a prior condition with the
+// same Type and Status exists, its LastTransitionTime is inherited — this is
+// the standard meta.SetCondition semantic and is what prevents identity
+// patches from creating reconcile churn.
+func newRouteCondition(t string, ok bool, reason, msg string, gen int64, priorConds []metav1.Condition) metav1.Condition {
 	st := metav1.ConditionFalse
 	if ok {
 		st = metav1.ConditionTrue
+	}
+	transition := metav1.Now()
+	for i := range priorConds {
+		if priorConds[i].Type == t && priorConds[i].Status == st && !priorConds[i].LastTransitionTime.IsZero() {
+			transition = priorConds[i].LastTransitionTime
+			break
+		}
 	}
 	return metav1.Condition{
 		Type:               t,
@@ -245,6 +262,6 @@ func newRouteCondition(t string, ok bool, reason, msg string, gen int64) metav1.
 		Reason:             reason,
 		Message:            msg,
 		ObservedGeneration: gen,
-		LastTransitionTime: metav1.Now(),
+		LastTransitionTime: transition,
 	}
 }

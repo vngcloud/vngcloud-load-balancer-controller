@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,6 +122,70 @@ func TestMergeRouteParents_DropsStaleParents(t *testing.T) {
 	if assert.Len(t, route.Status.Parents, 1) {
 		assert.Equal(t, gwv1.ObjectName("our-gw"), route.Status.Parents[0].ParentRef.Name)
 	}
+}
+
+func TestMergeRouteParents_PreservesLastTransitionTimeOnUnchangedStatus(t *testing.T) {
+	pref := parentRef("", "", "", "our-gw", "", nil)
+	earlier := metav1.NewTime(metav1.Now().Add(-time.Hour))
+	route := &gwv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Generation: 1},
+		Spec: gwv1.HTTPRouteSpec{
+			CommonRouteSpec: gwv1.CommonRouteSpec{ParentRefs: []gwv1.ParentReference{pref}},
+		},
+		Status: gwv1.HTTPRouteStatus{RouteStatus: gwv1.RouteStatus{Parents: []gwv1.RouteParentStatus{{
+			ParentRef:      pref,
+			ControllerName: gwv1.GatewayController(domain.ControllerNameALB),
+			Conditions: []metav1.Condition{
+				{Type: "Accepted", Status: metav1.ConditionTrue, Reason: reasonAccepted, ObservedGeneration: 1, LastTransitionTime: earlier},
+				{Type: "ResolvedRefs", Status: metav1.ConditionTrue, Reason: reasonResolvedRefs, ObservedGeneration: 1, LastTransitionTime: earlier},
+			},
+		}}}},
+	}
+	rep := &routeReport{
+		route: route,
+		parents: map[parentRefKey]*parentReport{keyFromParentRef(pref, "ns"): {
+			parentRef: pref, accepted: true, acceptedReason: reasonAccepted,
+			resolvedRefs: true, resolvedRefsReason: reasonResolvedRefs,
+		}},
+	}
+
+	changed := mergeRouteParents(route, rep)
+	assert.False(t, changed, "identical status should not flag a change")
+	if assert.Len(t, route.Status.Parents, 1) {
+		conds := route.Status.Parents[0].Conditions
+		assert.Equal(t, earlier, conds[0].LastTransitionTime, "unchanged Accepted should keep prior LastTransitionTime")
+		assert.Equal(t, earlier, conds[1].LastTransitionTime, "unchanged ResolvedRefs should keep prior LastTransitionTime")
+	}
+}
+
+func TestMergeRouteParents_BumpsLastTransitionTimeOnStatusFlip(t *testing.T) {
+	pref := parentRef("", "", "", "our-gw", "", nil)
+	earlier := metav1.NewTime(metav1.Now().Add(-time.Hour))
+	route := &gwv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Generation: 1},
+		Spec:       gwv1.HTTPRouteSpec{CommonRouteSpec: gwv1.CommonRouteSpec{ParentRefs: []gwv1.ParentReference{pref}}},
+		Status: gwv1.HTTPRouteStatus{RouteStatus: gwv1.RouteStatus{Parents: []gwv1.RouteParentStatus{{
+			ParentRef:      pref,
+			ControllerName: gwv1.GatewayController(domain.ControllerNameALB),
+			Conditions: []metav1.Condition{
+				{Type: "Accepted", Status: metav1.ConditionTrue, Reason: reasonAccepted, ObservedGeneration: 1, LastTransitionTime: earlier},
+				{Type: "ResolvedRefs", Status: metav1.ConditionTrue, Reason: reasonResolvedRefs, ObservedGeneration: 1, LastTransitionTime: earlier},
+			},
+		}}}},
+	}
+	rep := &routeReport{
+		route: route,
+		parents: map[parentRefKey]*parentReport{keyFromParentRef(pref, "ns"): {
+			parentRef: pref, accepted: true, acceptedReason: reasonAccepted,
+			resolvedRefs: false, resolvedRefsReason: reasonBackendNotFound,
+		}},
+	}
+
+	changed := mergeRouteParents(route, rep)
+	assert.True(t, changed)
+	conds := route.Status.Parents[0].Conditions
+	assert.Equal(t, earlier, conds[0].LastTransitionTime, "Accepted unchanged - keep prior")
+	assert.NotEqual(t, earlier, conds[1].LastTransitionTime, "ResolvedRefs flipped True->False - bump")
 }
 
 func TestRouteReport_DefaultsToNoMatchingParent(t *testing.T) {

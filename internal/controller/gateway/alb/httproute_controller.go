@@ -7,8 +7,10 @@ import (
 	"github.com/anngdinh/operator-helper/contexts"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase"
@@ -40,8 +42,14 @@ func NewHTTPRouteReconciler(
 }
 
 func (r *HTTPRouteReconciler) SetupWithManager(mgr manager.Manager) error {
+	// GenerationChangedPredicate skips updates whose .metadata.generation
+	// didn't change — i.e., status-only writes. This is essential because
+	// the Gateway use case writes route.Status.Parents on every reconcile;
+	// without this filter our own writes would fire the route reconciler,
+	// which bumps the parent gateway's route-revision annotation, which
+	// fires another gateway reconcile — an infinite status-write loop.
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&gwv1.HTTPRoute{}).
+		For(&gwv1.HTTPRoute{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("httproute-alb").
 		Complete(r)
 }
