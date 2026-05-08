@@ -21,16 +21,22 @@ Install the upstream Gateway API CRDs (Standard channel, v1.2.0):
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
 ```
 
-Then enable the controller's ALB Gateway feature gate via Helm:
+The ALB Gateway controller is enabled by default. Just install / upgrade the chart:
 
 ```bash
 helm upgrade --install vngcloud-load-balancer-controller \
-  charts/vngcloud-load-balancer-controller \
-  --set gatewayApi.alb.enabled=true \
-  --set 'manager.manager.args[8]=--enable-gateway-api-alb=true'   # append to args list
+  charts/vngcloud-load-balancer-controller
 ```
 
-(Or edit `manager.manager.args` in your values file — the chart passes args verbatim.)
+To **opt out** (e.g. on a cluster that hasn't installed the upstream Gateway-API CRDs):
+
+```bash
+helm upgrade vngcloud-load-balancer-controller \
+  charts/vngcloud-load-balancer-controller \
+  --set gatewayApi.alb.enabled=false
+# Also append `--disable-gateway-api-alb=true` to manager.manager.args
+# in your values file (the chart passes args verbatim).
+```
 
 ## Quickstart
 

@@ -147,9 +147,9 @@ func main() { //nolint:gocyclo
 		"If set, the VngcloudGlobalLoadBalancer controller will be disabled")
 	flag.BoolVar(&disableServiceGLBController, "disable-service-glb-controller", false,
 		"If set, the ServiceGLB controller will be disabled")
-	var enableGatewayAPIALB bool
-	flag.BoolVar(&enableGatewayAPIALB, "enable-gateway-api-alb", false,
-		"If set, the vngcloud-alb GatewayClass controller (Gateway API L7) will be enabled.")
+	var disableGatewayAPIALB bool
+	flag.BoolVar(&disableGatewayAPIALB, "disable-gateway-api-alb", false,
+		"If set, the vngcloud-alb GatewayClass controller (Gateway API L7) will be disabled.")
 	flag.DurationVar(&syncPeriod, "sync-period", 5*time.Minute,
 		"The minimum frequency at which watched resources are reconciled. "+
 			"A lower period will correct entropy more quickly, "+
@@ -351,7 +351,7 @@ func main() { //nolint:gocyclo
 		}
 	}
 
-	if enableGatewayAPIALB {
+	if !disableGatewayAPIALB {
 		annotationParser := annotations.NewSuffixAnnotationParser(domain.GATEWAY_API_PREFIX)
 		cniDetector := utils.NewDetector(mgr.GetClient())
 		albUC := alb_gateway_uc.NewALBGatewayUseCase(

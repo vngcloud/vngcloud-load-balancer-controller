@@ -1,6 +1,7 @@
 # Basic HTTP Gateway routing all paths on demo.example.com to a backend Service.
 # Prerequisite: upstream Gateway API CRDs installed (gateway-api v1.2.0+) and
-# the vngcloud-alb GatewayClass present (chart with gatewayApi.alb.enabled=true).
+# the vngcloud-alb GatewayClass present (default-on in the Helm chart;
+# set gatewayApi.alb.enabled=false to opt out).
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway

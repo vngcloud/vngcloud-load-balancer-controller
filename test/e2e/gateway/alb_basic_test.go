@@ -10,7 +10,8 @@ import (
 // verifies that the rendered status.address responds 200 to a host-header request.
 //
 // Prerequisites: vngcloud-alb GatewayClass installed; manager has
-// --enable-gateway-api-alb=true.
+// the ALB Gateway controller running (default-on; pass
+// --disable-gateway-api-alb=true to opt out).
 func TestALBBasic(t *testing.T) {
 	skipIfNotE2E(t)
 

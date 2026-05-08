@@ -49,13 +49,13 @@ Split into focused units (Init, Resolve, Attach, Deploy, Status, Delete) with TD
 - `synth_pool.go` — Deterministic pool naming via SHA-1 over sorted `(ns, name, port, weight)` tuples.
 
 ### Wiring
-- `cmd/main.go`: registers Gateway-API schemes (v1, v1alpha2, v1beta1) + new local group; new `--enable-gateway-api-alb` feature gate (default false). When set, all 5 reconcilers spin up.
+- `cmd/main.go`: registers Gateway-API schemes (v1, v1alpha2, v1beta1) + new local group; new `--disable-gateway-api-alb` feature gate (default `false`, i.e. enabled). All 5 reconcilers spin up by default; pass `--disable-gateway-api-alb=true` to opt out.
 - `pkg/metrics/util/reconcile_counter.go`: adds `IncrementGateway` and `IncrementHTTPRoute`.
 
 ### Helm chart (`charts/vngcloud-load-balancer-controller/`)
 - New CRD chart templates: `targetgroupconfig-crd.yaml`, `listenerruleconfig-crd.yaml`.
 - `gatewayclass-alb.yaml` template gated on `gatewayApi.alb.enabled`; honors `gatewayApi.alb.parametersRef` for an optional class-default LBC reference.
-- `values.yaml` documents the upstream Gateway-API CRD prerequisite and how to append `--enable-gateway-api-alb=true` to the manager args.
+- `values.yaml` documents the upstream Gateway-API CRD prerequisite and (for opt-out) how to append `--disable-gateway-api-alb=true` to the manager args.
 
 ### Samples & docs
 - 5 sample manifests under `config/samples/`: basic HTTP, HTTPS+SNI, weighted canary, TGC, LRC.
@@ -94,9 +94,10 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 
 # 2. Upgrade chart with the gate enabled
 helm upgrade vngcloud-load-balancer-controller charts/vngcloud-load-balancer-controller \
-  --set gatewayApi.alb.enabled=true \
+  # gatewayApi.alb.enabled defaults to true; nothing extra needed
+  
   --reuse-values
-# (Also append --enable-gateway-api-alb=true to manager.manager.args.)
+# Default-on: no extra manager arg needed.
 
 # 3. Apply a sample
 kubectl apply -f config/samples/gateway_v1_alb_basic.yaml
