@@ -2,6 +2,7 @@ package alb_gateway_uc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	loadbalancerv2 "github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/loadbalancer/v2"
@@ -18,6 +19,14 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/shared"
 	pkggw "github.com/vngcloud/vngcloud-load-balancer-controller/pkg/gateway"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
+)
+
+// Sentinel errors for backend-resolution failures. The route status writer
+// inspects these via errors.Is to map to gateway-api ResolvedRefs reasons.
+var (
+	errInvalidBackendKind = errors.New("invalid backend kind")
+	errBackendMissingPort = errors.New("backend missing port")
+	errRefNotPermitted    = errors.New("reference not permitted")
 )
 
 // resolveBackend turns one HTTPRoute backendRef into a BackendEndpoints value
@@ -51,10 +60,10 @@ func (uc *albGatewayUseCase) resolveBackend(
 		kind = string(*ref.Kind)
 	}
 	if group != "" || kind != "Service" {
-		return nil, nil, fmt.Errorf("unsupported backend kind %s/%s (Phase 1: core/Service only)", group, kind)
+		return nil, nil, fmt.Errorf("%w: %s/%s (Phase 1: core/Service only)", errInvalidBackendKind, group, kind)
 	}
 	if ref.Port == nil {
-		return nil, nil, fmt.Errorf("backendRef %q missing port", ref.Name)
+		return nil, nil, fmt.Errorf("%w: backendRef %q", errBackendMissingPort, ref.Name)
 	}
 
 	backendNS := routeNS
@@ -67,7 +76,7 @@ func (uc *albGatewayUseCase) resolveBackend(
 			ToGroup: "", ToKind: "Service", ToNS: backendNS, ToName: string(ref.Name),
 		}
 		if !shared.RefGrantAllowed(req, asGrantPtrs(grants)) {
-			return nil, nil, fmt.Errorf("cross-namespace backend %s/%s requires ReferenceGrant", backendNS, ref.Name)
+			return nil, nil, fmt.Errorf("%w: cross-namespace backend %s/%s requires ReferenceGrant", errRefNotPermitted, backendNS, ref.Name)
 		}
 	}
 

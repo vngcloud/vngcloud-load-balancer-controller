@@ -124,7 +124,8 @@ func TestResolveBackend_UnsupportedKind_ReturnsError(t *testing.T) {
 	uc := newALBUCWithResolver(repomocks.NewMockK8sRepository(t), utils.NewMockEndpointResolver(t))
 	_, _, err := uc.resolveBackend(context.Background(), "ns", "r1", "HTTPRoute", nil,
 		backendRef("", "ConfigMap", "", "x", 80, nil), nil, nil)
-	assert.ErrorContains(t, err, "unsupported backend")
+	assert.ErrorContains(t, err, "invalid backend kind")
+	assert.ErrorIs(t, err, errInvalidBackendKind)
 }
 
 func TestResolveBackend_MissingPort_ReturnsError(t *testing.T) {

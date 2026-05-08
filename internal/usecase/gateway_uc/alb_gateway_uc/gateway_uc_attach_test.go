@@ -63,7 +63,7 @@ func TestAttachHTTPRoutes_HappyPath(t *testing.T) {
 	lbSpec := &vksv1alpha1.LoadBalancerConfigSpec{
 		Listeners: []vksv1alpha1.Listener{{Name: "h"}},
 	}
-	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec))
+	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec, newRouteStatusAccumulator()))
 	assert.Len(t, lbSpec.Pools, 1)
 	assert.Len(t, lbSpec.Listeners[0].Policies, 1)
 	assert.NotEmpty(t, lbSpec.Pools[0].Name)
@@ -104,7 +104,7 @@ func TestAttachHTTPRoutes_DedupesPoolAcrossListeners(t *testing.T) {
 	lbSpec := &vksv1alpha1.LoadBalancerConfigSpec{
 		Listeners: []vksv1alpha1.Listener{{Name: "h1"}, {Name: "h2"}},
 	}
-	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec))
+	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec, newRouteStatusAccumulator()))
 	assert.Len(t, lbSpec.Pools, 1, "same-backend-set pool should be deduped across listeners")
 	assert.Len(t, lbSpec.Listeners[0].Policies, 1)
 	assert.Len(t, lbSpec.Listeners[1].Policies, 1)
@@ -138,7 +138,7 @@ func TestAttachHTTPRoutes_BackendResolveError_SkipsRule(t *testing.T) {
 	lbSpec := &vksv1alpha1.LoadBalancerConfigSpec{
 		Listeners: []vksv1alpha1.Listener{{Name: "h"}},
 	}
-	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec))
+	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec, newRouteStatusAccumulator()))
 	assert.Empty(t, lbSpec.Pools)
 	assert.Empty(t, lbSpec.Listeners[0].Policies)
 }
@@ -152,6 +152,6 @@ func TestAttachHTTPRoutes_NoAttachedRoutes_ShortCircuits(t *testing.T) {
 	lbSpec := &vksv1alpha1.LoadBalancerConfigSpec{
 		Listeners: []vksv1alpha1.Listener{{Name: "h"}},
 	}
-	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec))
+	require.NoError(t, uc.attachHTTPRoutes(context.Background(), gw, lbSpec, newRouteStatusAccumulator()))
 	assert.Empty(t, lbSpec.Pools)
 }

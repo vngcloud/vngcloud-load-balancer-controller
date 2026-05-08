@@ -21,7 +21,7 @@ import (
 // without ReferenceGrant, unsupported group/kind) are logged and skipped at
 // the rule level — surfacing partial-failure as Route ResolvedRefs=False is
 // C9e's job.
-func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gateway, lbSpec *vksv1alpha1.LoadBalancerConfigSpec) error {
+func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gateway, lbSpec *vksv1alpha1.LoadBalancerConfigSpec, acc *routeStatusAccumulator) error {
 	logger := contexts.NewContext(ctx).Log()
 
 	routeList := &gwv1.HTTPRouteList{}
@@ -31,6 +31,13 @@ func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gate
 	attached := routesAttachedToGateway(routeList.Items, gw)
 	if len(attached) == 0 {
 		return nil
+	}
+
+	// Pre-register every matched route so even routes that fail to attach to
+	// any listener (NoMatchingParent / NotAllowedByListeners) get a status
+	// update.
+	for _, ar := range attached {
+		acc.initRoute(ar.Route, ar.Parents)
 	}
 
 	grantList := &gwv1beta1.ReferenceGrantList{}
@@ -85,6 +92,10 @@ func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gate
 			if !routeAttachesToListener(gwListener, gw.Namespace, ar.Parents, ar.Route.Namespace) {
 				continue
 			}
+			rep := acc.reports[string(ar.Route.UID)]
+			for _, p := range ar.Parents {
+				rep.markAttachedToListener(p)
+			}
 
 			tgcs := getTGCs(ar.Route.Namespace)
 			lrcs := getLRCs(ar.Route.Namespace)
@@ -103,6 +114,7 @@ func (uc *albGatewayUseCase) attachHTTPRoutes(ctx context.Context, gw *gwv1.Gate
 					if err != nil {
 						logger.Warnf("backend %s/%s on route %s/%s rule %d skipped: %v",
 							ar.Route.Namespace, backend.Name, ar.Route.Namespace, ar.Route.Name, ruleIdx, err)
+						rep.recordBackendError(err, string(backend.Name))
 						continue
 					}
 					if props == nil {

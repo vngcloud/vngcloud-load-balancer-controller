@@ -79,12 +79,14 @@ func (uc *albGatewayUseCase) EnsureALBGatewayUseCase(ctx context.Context, req ct
 	if res == nil {
 		return nil
 	}
-	if err := uc.attachHTTPRoutes(ctx, res.gateway, res.lbSpec); err != nil {
+	acc := newRouteStatusAccumulator()
+	if err := uc.attachHTTPRoutes(ctx, res.gateway, res.lbSpec, acc); err != nil {
 		return err
 	}
 	if _, err := uc.deployLB(ctx, res.gateway, res.lbSpec); err != nil {
 		return err
 	}
+	uc.writeHTTPRouteStatuses(ctx, acc)
 	return uc.markAcceptedAndProgrammed(ctx, res.gateway)
 }
 
