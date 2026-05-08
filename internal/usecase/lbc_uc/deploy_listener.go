@@ -354,11 +354,12 @@ func (t *defaultModelDeployTask) buildListenerUpdateRequest(ctx context.Context,
 
 // compare listener headers, if they are the same then return true
 func (t *defaultModelDeployTask) compareHeader(current []entityv2.ListenerInsertHeader, newHeaders []v1alpha1.InsertHeader) bool {
-	if current == nil && newHeaders == nil {
+	// Treat nil and empty as equivalent — vngcloud always returns []
+	// for "no headers" while a freshly-built spec carries nil. Without
+	// this collapse, every controller restart produced a phantom
+	// "headers ([] -> [])" diff and a needless listener update.
+	if len(current) == 0 && len(newHeaders) == 0 {
 		return true
-	}
-	if current == nil || newHeaders == nil {
-		return false
 	}
 	if len(current) != len(newHeaders) {
 		return false
