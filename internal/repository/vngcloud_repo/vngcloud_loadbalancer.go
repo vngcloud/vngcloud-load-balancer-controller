@@ -23,7 +23,7 @@ func (m *vngCloudRepository) ListLoadBalancers(ctx context.Context, tags []strin
 	lbs, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListLoadBalancers(loadbalancerv2.NewListLoadBalancersRequest(defaultOffset, defaultPageSize).WithTags(tags...).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListLoadBalancers: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return lbs, nil
 }
@@ -32,7 +32,7 @@ func (m *vngCloudRepository) GetLoadBalancerByID(ctx context.Context, lbID strin
 	lb, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().GetLoadBalancerById(loadbalancerv2.NewGetLoadBalancerByIdRequest(lbID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - GetLoadBalancerByID: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return lb, nil
 }
@@ -56,7 +56,7 @@ func (m *vngCloudRepository) CreateLoadBalancer(ctx context.Context, lbOptions l
 	newLB, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().CreateLoadBalancer(lbOptions.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateLoadBalancer: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return newLB, nil
 }
@@ -66,7 +66,7 @@ func (m *vngCloudRepository) DeleteLoadBalancer(ctx context.Context, lbID string
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().DeleteLoadBalancerById(loadbalancerv2.NewDeleteLoadBalancerByIdRequest(lbID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeleteLoadBalancer: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -78,7 +78,7 @@ func (m *vngCloudRepository) ResizeLoadBalancer(ctx context.Context, lbID, packa
 	_, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ResizeLoadBalancer(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ResizeLoadBalancer: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (m *vngCloudRepository) ListLoadBalancerPackageByZone(ctx context.Context, 
 	packages, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListLoadBalancerPackages(opt.AddUserAgent(m.userAgent).WithZoneId(zone))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListLoadBalancerPackageByZone: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return packages, nil
 }
@@ -143,7 +143,7 @@ func (m *vngCloudRepository) CreateInterLoadBalancer(ctx context.Context, lbOpti
 		CreateLoadBalancer(lbOptions.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateInterLoadBalancer: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return newLB, nil
 }

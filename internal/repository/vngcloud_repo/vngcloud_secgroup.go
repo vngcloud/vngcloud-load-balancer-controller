@@ -21,7 +21,7 @@ func (m *vngCloudRepository) ListSecurityGroups(ctx context.Context) (*entityv2.
 	secgroups, sdkErr := m.client.VServerGateway().V2().NetworkService().ListSecgroup(networkv2.NewListSecgroupRequest().AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListSecurityGroups: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return secgroups, nil
 }
@@ -40,19 +40,19 @@ func (m *vngCloudRepository) UpdateSecGroupsOfServer(ctx context.Context, instan
 	for i := 0; i < 3; i++ {
 		server, sdkErr = m.client.VServerGateway().V2().ComputeService().UpdateServerSecgroupsByServerId(opt.AddUserAgent(m.userAgent))
 		if sdkErr != nil {
-			if IsServerNotReady(sdkErr.GetError()) {
+			if IsServerNotReady(domain.SDKError(sdkErr)) {
 				logger.Infof("%s Server %s is not ready yet, waiting...", domain.WaitIcon, instanceID)
 				time.Sleep(5 * time.Second)
 				continue
 			} else {
 				logger.Error("[ERROR] - UpdateSecGroupsOfServer: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-				return nil, sdkErr.GetError()
+				return nil, domain.SDKError(sdkErr)
 			}
 		} else {
 			return server, nil
 		}
 	}
-	return nil, sdkErr.GetError()
+	return nil, domain.SDKError(sdkErr)
 }
 
 func (m *vngCloudRepository) GetSecurityGroup(ctx context.Context, secgroupID string) (*entityv2.Secgroup, error) {
@@ -61,7 +61,7 @@ func (m *vngCloudRepository) GetSecurityGroup(ctx context.Context, secgroupID st
 	secgroup, sdkErr := m.client.VServerGateway().V2().NetworkService().GetSecgroupById(networkv2.NewGetSecgroupByIdRequest(secgroupID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - GetSecurityGroup: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return secgroup, nil
 }
@@ -73,7 +73,7 @@ func (m *vngCloudRepository) DeleteSecurityGroup(ctx context.Context, secgroupID
 	sdkErr := m.client.VServerGateway().V2().NetworkService().DeleteSecgroupById(networkv2.NewDeleteSecgroupByIdRequest(secgroupID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeleteSecurityGroup: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func (m *vngCloudRepository) CreateSecurityGroup(ctx context.Context, name strin
 	secgroup, sdkErr := m.client.VServerGateway().V2().NetworkService().CreateSecgroup(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateSecurityGroup: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return secgroup, nil
 }
@@ -98,7 +98,7 @@ func (m *vngCloudRepository) CreateSecurityGroupRule(ctx context.Context, secgro
 	rule, sdkErr := m.client.VServerGateway().V2().NetworkService().CreateSecgroupRule(opts.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateSecurityGroupRule: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return rule, nil
 }
@@ -110,7 +110,7 @@ func (m *vngCloudRepository) DeleteSecurityGroupRule(ctx context.Context, secgro
 	sdkErr := m.client.VServerGateway().V2().NetworkService().DeleteSecgroupRuleById(networkv2.NewDeleteSecgroupRuleByIdRequest(ruleID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeleteSecurityGroupRule: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -121,7 +121,7 @@ func (m *vngCloudRepository) ListSecurityGroupRules(ctx context.Context, secgrou
 	rules, sdkErr := m.client.VServerGateway().V2().NetworkService().ListSecgroupRulesBySecgroupId(networkv2.NewListSecgroupRulesBySecgroupIdRequest(secgroupID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListSecurityGroupRules: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return rules, nil
 }

@@ -70,8 +70,8 @@ func IsSecurityGroupNotFound(err error) bool {
 }
 
 func IsRateLimitExceeded(err error) bool {
-	// TODO
-	return false
+	var rl *RateLimitError
+	return errors.As(err, &rl)
 }
 
 // Cannot get server with id ins-...

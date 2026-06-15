@@ -17,7 +17,7 @@ func (m *vngCloudRepository) CreateListener(ctx context.Context, lbID string, op
 	listener, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().CreateListener(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateListener: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return listener, nil
 }
@@ -27,7 +27,7 @@ func (m *vngCloudRepository) ListListenerOfLB(ctx context.Context, lbID string) 
 	listeners, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListListenersByLoadBalancerId(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListListenerOfLB: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return listeners, nil
 }
@@ -38,7 +38,7 @@ func (m *vngCloudRepository) DeleteListener(ctx context.Context, lbID, listenerI
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().DeleteListenerById(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeleteListener: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func (m *vngCloudRepository) UpdateListener(ctx context.Context, lbID, listenerI
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().UpdateListener(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - UpdateListener: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -59,7 +59,7 @@ func (m *vngCloudRepository) GetListenerById(ctx context.Context, lbID, listener
 	listener, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().GetListenerById(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - GetListenerById: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return listener, nil
 }

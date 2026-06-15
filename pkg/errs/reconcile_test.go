@@ -1,6 +1,7 @@
 package errs
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 )
 
 func TestHandleReconcileError(t *testing.T) {
@@ -56,6 +59,23 @@ func TestHandleReconcileError(t *testing.T) {
 			want:    ctrl.Result{},
 			wantErr: errors.New("some error"),
 		},
+		{
+			name: "input err is rate limit with server hint honored (plus floor + jitter)",
+			args: args{
+				err: &domain.RateLimitError{RetryAfter: 4 * time.Second},
+			},
+			// floor 2s ≤ 4s ≤ 5m ceiling, plus up to 50% jitter → [4s, 6s)
+			want:    ctrl.Result{},
+			wantErr: nil,
+		},
+		{
+			name: "input err wraps rate limit",
+			args: args{
+				err: fmt.Errorf("wrapped: %w", &domain.RateLimitError{RetryAfter: 0}),
+			},
+			want:    ctrl.Result{},
+			wantErr: nil,
+		},
 	}
 
 	logger := logrus.New().WithField("test", "TestHandleReconcileError")
@@ -64,10 +84,19 @@ func TestHandleReconcileError(t *testing.T) {
 			got, err := HandleReconcileError(tt.args.err, logger)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				return
 			}
+			assert.NoError(t, err)
+
+			var rl *domain.RateLimitError
+			if errors.As(tt.args.err, &rl) {
+				// rate-limit: requeue duration is server hint with floor + jitter,
+				// so we just assert it's > 0 and reasonable.
+				assert.Greater(t, got.RequeueAfter, time.Duration(0))
+				assert.Less(t, got.RequeueAfter, 10*time.Minute)
+				return
+			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

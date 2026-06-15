@@ -22,7 +22,7 @@ func (m *vngCloudRepository) CreatePolicy(ctx context.Context, lbID, listenerID 
 	policy, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().CreatePolicy(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreatePolicy: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return policy, nil
 }
@@ -31,7 +31,7 @@ func (m *vngCloudRepository) ListPolicyOfListener(ctx context.Context, lbID, lis
 	listPolicies, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListPolicies(loadbalancerv2.NewListPoliciesRequest(lbID, listenerID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListPolicyOfListener: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return listPolicies, nil
 }
@@ -46,7 +46,7 @@ func (m *vngCloudRepository) UpdatePolicy(ctx context.Context, lbID, listenerID,
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().UpdatePolicy(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - UpdatePolicy: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func (m *vngCloudRepository) DeletePolicy(ctx context.Context, lbID, listenerID,
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().DeletePolicyById(loadbalancerv2.NewDeletePolicyByIdRequest(lbID, listenerID, policyID).AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeletePolicy: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -68,7 +68,7 @@ func (m *vngCloudRepository) ReorderPolicies(ctx context.Context, lbID, listener
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ReorderPolicies(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ReorderPolicies: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }

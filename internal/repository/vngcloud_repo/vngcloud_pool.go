@@ -21,7 +21,7 @@ func (m *vngCloudRepository) CreatePool(ctx context.Context, lbID string, opt lo
 	pool, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().CreatePool(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreatePool: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return pool, nil
 }
@@ -31,7 +31,7 @@ func (m *vngCloudRepository) ListPool(ctx context.Context, lbID string) (*entity
 	pools, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListPoolsByLoadBalancerId(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListPool: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return pools, nil
 }
@@ -41,7 +41,7 @@ func (m *vngCloudRepository) UpdatePoolMembers(ctx context.Context, lbID, poolID
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().UpdatePoolMembers(members.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - UpdatePoolMembers: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func (m *vngCloudRepository) GetPoolMembers(ctx context.Context, lbID, poolID st
 	members, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListPoolMembers(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - GetPoolMembers: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return members, nil
 }
@@ -70,7 +70,7 @@ func (m *vngCloudRepository) DeletePool(ctx context.Context, lbID, poolID string
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().DeletePoolById(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - DeletePool: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (m *vngCloudRepository) UpdatePool(ctx context.Context, lbID, poolID string
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().UpdatePool(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - UpdatePool: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -92,7 +92,7 @@ func (m *vngCloudRepository) GetPoolHealthMonitorById(ctx context.Context, lbID,
 	monitor, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().GetPoolHealthMonitorById(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - GetPoolHealthMonitorById: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return monitor, nil
 }

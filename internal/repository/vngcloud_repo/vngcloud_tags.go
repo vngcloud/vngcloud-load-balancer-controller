@@ -17,7 +17,7 @@ func (m *vngCloudRepository) ListTags(ctx context.Context, resourceID string) (*
 	tags, sdkErr := m.client.VLBGateway().V2().LoadBalancerService().ListTags(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - ListTags: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return nil, sdkErr.GetError()
+		return nil, domain.SDKError(sdkErr)
 	}
 	return tags, nil
 }
@@ -36,7 +36,7 @@ func (m *vngCloudRepository) CreateTags(ctx context.Context, resourceID string, 
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().CreateTags(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - CreateTags: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }
@@ -55,7 +55,7 @@ func (m *vngCloudRepository) UpdateTags(ctx context.Context, resourceID string, 
 	sdkErr := m.client.VLBGateway().V2().LoadBalancerService().UpdateTags(opt.AddUserAgent(m.userAgent))
 	if sdkErr != nil {
 		logger.Error("[ERROR] - UpdateTags: ", sdkErr, ", params: ", sdkErr.GetListParameters())
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/vngcloud/vngcloud-go-sdk/v2/client"
 	portalv1 "github.com/vngcloud/vngcloud-go-sdk/v2/vngcloud/services/portal/v1"
 
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/config"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils/metadata"
@@ -120,7 +121,7 @@ func (m *vngCloudRepository) setupProjectId(ctx context.Context, pmetadataServic
 		PortalService().GetPortalInfo(portalv1.NewGetPortalInfoRequest(projectID))
 	if sdkErr != nil {
 		logger.Errorf("[ERROR] - setupProjectId: failed to get portal information: %v", sdkErr)
-		return sdkErr.GetError()
+		return domain.SDKError(sdkErr)
 	}
 
 	// [cuongdm3] Congratulation, everything is OK

@@ -6,12 +6,22 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 )
 
 // HandleReconcileError will handle errors from reconcile handlers, which respects runtime errors.
 func HandleReconcileError(err error, log *logrus.Entry) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
+	}
+
+	var rateLimit *domain.RateLimitError
+	if errors.As(err, &rateLimit) {
+		wait := domain.RateLimitRequeueAfter(rateLimit.RetryAfter)
+		log.Warnf("rate limited by VngCloud API, requeue after %s (server hint: %s, %s %s)",
+			wait, rateLimit.RetryAfter, rateLimit.Method, rateLimit.URL)
+		return ctrl.Result{RequeueAfter: wait}, nil
 	}
 
 	var requeueNeededAfter *RequeueNeededAfter
