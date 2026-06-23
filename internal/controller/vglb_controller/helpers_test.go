@@ -10,14 +10,25 @@ import (
 
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/consts"
 )
 
-// newVGLBResource creates a minimal VngcloudGlobalLoadBalancer resource for testing.
+// newVGLBResource creates a minimal VngcloudGlobalLoadBalancer resource for
+// testing. The config-cluster-id annotation matches mockConfig.Cluster.ClusterID
+// (testClusterID) and the fleet-id label is non-empty — both are required by
+// the ensure() gate in internal/usecase/vglb_uc/build_glbc.go before any GLBC
+// is created. Without them, the reconcile requeues indefinitely.
 func newVGLBResource(name, namespace string) *v1alpha1.VngcloudGlobalLoadBalancer {
 	return &v1alpha1.VngcloudGlobalLoadBalancer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				consts.ConfigClusterIdAnnotation: testClusterID,
+			},
+			Labels: map[string]string{
+				consts.FleetIDLabel: testFleetID,
+			},
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "VngcloudGlobalLoadBalancer",

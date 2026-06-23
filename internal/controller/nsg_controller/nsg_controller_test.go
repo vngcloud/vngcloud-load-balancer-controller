@@ -28,6 +28,19 @@ import (
 )
 
 var _ = Describe("NodeSecurityGroup Controller", func() {
+	BeforeEach(func() {
+		// Best-effort drain of any K8s NSGs left over from a previous
+		// spec, then reset the in-memory mock VNGCloud state so this
+		// spec starts from a known-clean slate regardless of the
+		// previous spec's finalizer-chain progress.
+		nsgList := &v1alpha1.NodeSecurityGroupList{}
+		_ = k8sClient.List(ctx, nsgList)
+		for i := range nsgList.Items {
+			_ = k8sClient.Delete(ctx, &nsgList.Items[i])
+		}
+		vngcloudRepo.Reset()
+	})
+
 	AfterEach(func() {
 		// Ensure clean state after test
 		expectNoSecurityGroups()

@@ -65,6 +65,14 @@ var (
 	vngcloudRepo *vngcloud_mocks.MockProvider
 
 	mockConfig = &config.Config{
+		Cluster: struct {
+			IsRunRemote bool   `mapstructure:"isRunRemote"`
+			Namespace   string `mapstructure:"namespace"`
+			ClusterID   string `mapstructure:"clusterID"`
+			Region      string `mapstructure:"region"`
+		}{
+			ClusterID: testClusterID,
+		},
 		GlobalLoadBalancerOpts: config.GlobalLoadBalancerOpts{
 			DefaultL4PackageName:      "glb-small",
 			DefaultPoolAlgorithm:      "ROUND_ROBIN",
@@ -78,6 +86,15 @@ var (
 			DefaultAllowedCidrs:       "0.0.0.0/0",
 		},
 	}
+)
+
+const (
+	// testClusterID is what the VGLB controller's mockConfig.Cluster.ClusterID
+	// is set to. VGLB resources must carry the matching ConfigClusterIdAnnotation
+	// for ensure() to proceed past the "config-cluster-id is empty / mismatch"
+	// gate; see internal/usecase/vglb_uc/build_glbc.go.
+	testClusterID = "k8s-00000000-0000-0000-0000-000000000000"
+	testFleetID   = "fleet-00000000-0000-0000-0000-000000000000"
 )
 
 func TestVglbController(t *testing.T) {

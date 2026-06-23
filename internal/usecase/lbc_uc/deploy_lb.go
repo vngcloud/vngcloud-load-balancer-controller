@@ -18,6 +18,7 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/config"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/errs"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/k8sbatch"
 )
 
 type defaultModelDeployTask struct {
@@ -26,6 +27,12 @@ type defaultModelDeployTask struct {
 	vngcloudRepo repository.VngCloudRepository
 	k8sRepo      repository.K8sRepository
 	lbConfig     *v1alpha1.LoadBalancerConfig
+
+	// batcher coalesces queued Status mutations across the many small
+	// statusAdd* helpers in this package. One GET + one Status PATCH
+	// per reconcile instead of one per helper call. Flushed once at
+	// the end of ensure / DeleteLoadBalancerConfigUseCase.
+	batcher *k8sbatch.Batcher
 }
 
 func (t *defaultModelDeployTask) deploy(ctx context.Context) error {

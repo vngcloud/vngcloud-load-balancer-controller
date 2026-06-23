@@ -8,10 +8,23 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/k8sbatch"
 )
 
-func (t *defaultModelDeployTask) statusAddListener(ctx context.Context, listenerId string, port int) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+// The status helpers below queue mutators on t.batcher rather than issuing
+// a GET+PATCH per call. All mutators target the same LoadBalancerConfig
+// (t.lbConfig), so they coalesce into one queue entry; the surrounding
+// ensure / DeleteLoadBalancerConfigUseCase calls Flush once at the end of
+// reconcile, performing a single GET + Status PATCH for the whole batch.
+//
+// Each mutator runs at flush time against a freshly-fetched copy of the
+// object — so the compare-on-fresh-state checks below ("does this listener
+// already exist?") still see the live cluster state, just like the prior
+// PatchMutateStatusLoadBalancerConfig pattern. Returning false skips the
+// patch when nothing has changed.
+
+func (t *defaultModelDeployTask) statusAddListener(_ context.Context, listenerId string, port int) error {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already exists with same values
 		for _, l := range obj.Status.CreatedListeners {
 			if l.Id == listenerId && l.Port == port {
@@ -27,10 +40,11 @@ func (t *defaultModelDeployTask) statusAddListener(ctx context.Context, listener
 		obj.Status.CreatedListeners = append(obj.Status.CreatedListeners, v1alpha1.CreatedListener{Id: listenerId, Port: port})
 		return true
 	})
+	return nil
 }
 
-func (t *defaultModelDeployTask) statusAddPolicy(ctx context.Context, listenerId string, port int, policyId string) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+func (t *defaultModelDeployTask) statusAddPolicy(_ context.Context, listenerId string, port int, policyId string) error {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already exists with same values
 		for _, l := range obj.Status.CreatedListeners {
 			if l.Id == listenerId && l.Port == port {
@@ -56,10 +70,11 @@ func (t *defaultModelDeployTask) statusAddPolicy(ctx context.Context, listenerId
 		obj.Status.CreatedListeners = append(obj.Status.CreatedListeners, v1alpha1.CreatedListener{Id: listenerId, Port: port, CreatedPolicies: []v1alpha1.CreatedPolicy{{Id: policyId}}})
 		return true
 	})
+	return nil
 }
 
-func (t *defaultModelDeployTask) statusAddPool(ctx context.Context, poolId string, name string) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+func (t *defaultModelDeployTask) statusAddPool(_ context.Context, poolId string, name string) error {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already exists with same values
 		for _, p := range obj.Status.CreatedPools {
 			if p.Id == poolId && p.Name == name {
@@ -75,10 +90,11 @@ func (t *defaultModelDeployTask) statusAddPool(ctx context.Context, poolId strin
 		obj.Status.CreatedPools = append(obj.Status.CreatedPools, v1alpha1.CreatedPool{Id: poolId, Name: name})
 		return true
 	})
+	return nil
 }
 
 func (t *defaultModelDeployTask) statusAddPoolMember(ctx context.Context, poolId string, name string, members []v1alpha1.PoolMember) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already exists with same values
 		for _, p := range obj.Status.CreatedPools {
 			if p.Id == poolId && p.Name == name && t.comparePoolMembers(ctx, p.CreatedMembers, members) {
@@ -95,10 +111,11 @@ func (t *defaultModelDeployTask) statusAddPoolMember(ctx context.Context, poolId
 		obj.Status.CreatedPools = append(obj.Status.CreatedPools, v1alpha1.CreatedPool{Id: poolId, Name: name, CreatedMembers: members})
 		return true
 	})
+	return nil
 }
 
-func (t *defaultModelDeployTask) statusAddLoadBalancerId(ctx context.Context, lbId *string, address *string) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+func (t *defaultModelDeployTask) statusAddLoadBalancerId(_ context.Context, lbId *string, address *string) error {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already equal
 		if ptr.Equal(obj.Status.LoadBalancerId, lbId) && ptr.Equal(obj.Status.Address, address) {
 			return false // no change needed
@@ -107,10 +124,11 @@ func (t *defaultModelDeployTask) statusAddLoadBalancerId(ctx context.Context, lb
 		obj.Status.Address = address
 		return true
 	})
+	return nil
 }
 
-func (t *defaultModelDeployTask) statusAddCreatedTags(ctx context.Context, tags map[string]string) error {
-	return t.k8sRepo.PatchMutateStatusLoadBalancerConfig(ctx, t.lbConfig, func(ctx context.Context, obj *v1alpha1.LoadBalancerConfig) bool {
+func (t *defaultModelDeployTask) statusAddCreatedTags(_ context.Context, tags map[string]string) error {
+	k8sbatch.MutateStatus(t.batcher, t.lbConfig, func(obj *v1alpha1.LoadBalancerConfig) bool {
 		// check on fresh copy if already equal
 		if maps.Equal(obj.Status.CreatedTags, tags) {
 			return false // no change needed
@@ -118,6 +136,7 @@ func (t *defaultModelDeployTask) statusAddCreatedTags(ctx context.Context, tags 
 		obj.Status.CreatedTags = tags
 		return true
 	})
+	return nil
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@ package service_uc
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
@@ -72,8 +73,18 @@ func (uc *serviceUseCase) InitServiceUseCase(ctx context.Context) error {
 
 	// check if network info is available
 	if uc.defaultNetworkId == "" || uc.defaultSubnetId == "" || uc.defaultSubnetCIDR == "" || uc.defaultZone == "" {
-		// get provider ID from first node
-		firstProviderId := utils.GetProviderIdFromNode(&nodes.Items[0])
+		// Sort nodes by name so the "first" node — and therefore the
+		// derived default network/subnet/zone — is deterministic across
+		// process restarts. Without this, K8s List ordering can flip
+		// the cached defaults between runs (and between test seeds in
+		// envtest), producing reconcile output that depends on which
+		// node the API server happens to return first.
+		sortedNodes := make([]corev1.Node, len(nodes.Items))
+		copy(sortedNodes, nodes.Items)
+		sort.Slice(sortedNodes, func(i, j int) bool {
+			return sortedNodes[i].Name < sortedNodes[j].Name
+		})
+		firstProviderId := utils.GetProviderIdFromNode(&sortedNodes[0])
 		if firstProviderId == "" {
 			return errors.New("failed to get provider ID from node")
 		}

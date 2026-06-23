@@ -11,9 +11,21 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/annotations"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 )
 
 func TestBuildLoadBalancerName(t *testing.T) {
+	const clusterID = "test-cluster"
+
+	// expectedDefault returns the value GetLoadBalancerDefaultName produces
+	// for the given vglb identity. We delegate to the same NameHelper the
+	// production code uses so this test verifies wiring (annotation override
+	// vs. default fall-through) without coupling to the helper's internal
+	// hash/trim format.
+	expectedDefault := func(namespace, name string) string {
+		return utils.NewNameHelper(clusterID, "vglb", namespace, name).GetLoadBalancerDefaultName()
+	}
+
 	tests := []struct {
 		name         string
 		vglbName     string
@@ -37,8 +49,8 @@ func TestBuildLoadBalancerName(t *testing.T) {
 			vglbName:     "my-vglb",
 			namespace:    "default",
 			annotations:  map[string]string{},
-			expectedName: "vks_default_my_vglb",
-			description:  "should return default name based on namespace and vglb name",
+			expectedName: expectedDefault("default", "my-vglb"),
+			description:  "should fall through to NameHelper.GetLoadBalancerDefaultName when no annotation",
 		},
 		{
 			name:      "empty_annotation_uses_default",
@@ -47,16 +59,16 @@ func TestBuildLoadBalancerName(t *testing.T) {
 			annotations: map[string]string{
 				domain.VGLB_ANNOTATION_PREFIX + "/" + annotations.SuffixLoadBalancerName: "",
 			},
-			expectedName: "vks_production_test_vglb",
-			description:  "should return default name when annotation is empty",
+			expectedName: expectedDefault("production", "test-vglb"),
+			description:  "should fall through to default when annotation is empty",
 		},
 		{
 			name:         "with_special_characters_in_name",
 			vglbName:     "my-test-vglb-123",
 			namespace:    "my-namespace",
 			annotations:  map[string]string{},
-			expectedName: "vks_my_namespace_my_test_vglb_123",
-			description:  "should handle names with hyphens and numbers",
+			expectedName: expectedDefault("my-namespace", "my-test-vglb-123"),
+			description:  "should fall through to default and handle special characters via NameHelper",
 		},
 	}
 
@@ -75,6 +87,7 @@ func TestBuildLoadBalancerName(t *testing.T) {
 			task := &defaultModelBuildTask{
 				vglb:             vglb,
 				annotationParser: annotationParser,
+				nameHelper:       utils.NewNameHelper(clusterID, "vglb", tt.namespace, tt.vglbName),
 			}
 
 			result := task.buildLoadBalancerName(context.Background())

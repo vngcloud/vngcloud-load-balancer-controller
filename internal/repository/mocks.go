@@ -4485,6 +4485,52 @@ func (_m *MockK8sRepository) EXPECT() *MockK8sRepository_Expecter {
 	return &MockK8sRepository_Expecter{mock: &_m.Mock}
 }
 
+// Client provides a mock function for the type MockK8sRepository
+func (_mock *MockK8sRepository) Client() client.Client {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Client")
+	}
+
+	var r0 client.Client
+	if returnFunc, ok := ret.Get(0).(func() client.Client); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(client.Client)
+		}
+	}
+	return r0
+}
+
+// MockK8sRepository_Client_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Client'
+type MockK8sRepository_Client_Call struct {
+	*mock.Call
+}
+
+// Client is a helper method to define mock.On call
+func (_e *MockK8sRepository_Expecter) Client() *MockK8sRepository_Client_Call {
+	return &MockK8sRepository_Client_Call{Call: _e.mock.On("Client")}
+}
+
+func (_c *MockK8sRepository_Client_Call) Run(run func()) *MockK8sRepository_Client_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockK8sRepository_Client_Call) Return(client1 client.Client) *MockK8sRepository_Client_Call {
+	_c.Call.Return(client1)
+	return _c
+}
+
+func (_c *MockK8sRepository_Client_Call) RunAndReturn(run func() client.Client) *MockK8sRepository_Client_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateGlobalLoadBalancerConfig provides a mock function for the type MockK8sRepository
 func (_mock *MockK8sRepository) CreateGlobalLoadBalancerConfig(ctx context.Context, glbc *v1alpha1.GlobalLoadBalancerConfig, opts ...client.CreateOption) error {
 	var tmpRet mock.Arguments

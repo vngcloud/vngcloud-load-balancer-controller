@@ -14,6 +14,7 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/config"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/k8sbatch"
 )
 
 type lbcUseCase struct {
@@ -133,13 +134,21 @@ func (uc *lbcUseCase) ensure(ctx context.Context, lbConfig *v1alpha1.LoadBalance
 		lbConfig:     lbConfig,
 		vngcloudRepo: uc.vngcloudRepo,
 		k8sRepo:      uc.k8sRepo,
+		batcher:      k8sbatch.New(uc.k8sRepo.Client()),
 	}
 
-	if err := task.deploy(ctx); err != nil {
-		return err
+	deployErr := task.deploy(ctx)
+	flushErr := task.batcher.Flush(ctx)
+	if deployErr != nil {
+		// Deploy is the primary error; surface flush failures as a log so
+		// callers' requeue logic still sees the original cause. Partial
+		// status writes that did flush successfully are still persisted.
+		if flushErr != nil {
+			logger.Warnf("flush of batched status updates failed: %v", flushErr)
+		}
+		return deployErr
 	}
-
-	return nil
+	return flushErr
 }
 
 func (uc *lbcUseCase) DeleteLoadBalancerConfigUseCase(ctx context.Context, req ctrl.Request) error {
@@ -161,11 +170,16 @@ func (uc *lbcUseCase) DeleteLoadBalancerConfigUseCase(ctx context.Context, req c
 		lbConfig:     lbConfig,
 		vngcloudRepo: uc.vngcloudRepo,
 		k8sRepo:      uc.k8sRepo,
+		batcher:      k8sbatch.New(uc.k8sRepo.Client()),
 	}
 
-	if err := task.delete(ctx); err != nil {
-		return err
+	deleteErr := task.delete(ctx)
+	flushErr := task.batcher.Flush(ctx)
+	if deleteErr != nil {
+		if flushErr != nil {
+			logger.Warnf("flush of batched status updates failed: %v", flushErr)
+		}
+		return deleteErr
 	}
-
-	return nil
+	return flushErr
 }

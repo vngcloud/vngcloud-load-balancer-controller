@@ -115,6 +115,11 @@ type VngCloudRepository interface {
 }
 
 type K8sRepository interface {
+	// Client returns the underlying controller-runtime client. Use cases
+	// need it to construct k8sbatch.Batcher instances; the repo's typed
+	// methods remain the preferred API for individual operations.
+	Client() client.Client
+
 	GetService(ctx context.Context, n types.NamespacedName) (*corev1.Service, error)
 	UpdateServiceStatusAddress(ctx context.Context, n types.NamespacedName, address string) error
 

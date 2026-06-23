@@ -3,6 +3,7 @@ package ingress_uc
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
@@ -73,8 +74,16 @@ func (uc *ingressUseCase) InitIngressUseCase(ctx context.Context) error {
 
 	// check if network info is available
 	if uc.defaultNetworkId == "" || uc.defaultSubnetId == "" || uc.defaultSubnetCIDR == "" || uc.defaultZone == "" {
-		// get provider ID from first node
-		firstProviderId := utils.GetProviderIdFromNode(&nodes.Items[0])
+		// Sort nodes by name so the "first" node — and therefore the
+		// derived default network/subnet/zone — is deterministic across
+		// process restarts. Without this, K8s List ordering can flip
+		// the cached defaults between runs.
+		sortedNodes := make([]corev1.Node, len(nodes.Items))
+		copy(sortedNodes, nodes.Items)
+		sort.Slice(sortedNodes, func(i, j int) bool {
+			return sortedNodes[i].Name < sortedNodes[j].Name
+		})
+		firstProviderId := utils.GetProviderIdFromNode(&sortedNodes[0])
 		if firstProviderId == "" {
 			return errors.New("failed to get provider ID from node")
 		}

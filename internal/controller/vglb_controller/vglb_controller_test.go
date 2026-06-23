@@ -83,11 +83,15 @@ var _ = Describe("VngcloudGlobalLoadBalancer Controller", func() {
 				foundGLBC = glbc
 			}, vglbTimeout, vglbInterval).Should(Succeed())
 
-			// Assert GLBC spec: name uses vks_ prefix with underscores
-			Expect(strings.Contains(foundGLBC.Spec.Name, "vks_")).To(BeTrue(),
-				"Expected GLBC Name to contain 'vks_', got: %s", foundGLBC.Spec.Name)
-			Expect(strings.Contains(foundGLBC.Spec.Name, "vglb_create_test")).To(BeTrue(),
-				"Expected GLBC Name to contain service name with underscores, got: %s", foundGLBC.Spec.Name)
+			// Assert GLBC spec: name has the vks- prefix and embeds a
+			// recognizable slice of the service name. utils.ValidateName
+			// converts the underscores from NameHelper's format string
+			// into dashes, and TrimString truncates "vglb-create-test"
+			// down to its first 10 characters before assembly.
+			Expect(strings.HasPrefix(foundGLBC.Spec.Name, "vks-")).To(BeTrue(),
+				"Expected GLBC Name to start with 'vks-', got: %s", foundGLBC.Spec.Name)
+			Expect(strings.Contains(foundGLBC.Spec.Name, "vglb-creat")).To(BeTrue(),
+				"Expected GLBC Name to contain truncated service name 'vglb-creat', got: %s", foundGLBC.Spec.Name)
 
 			// Assert: 1 pool
 			Expect(foundGLBC.Spec.GlobalPools).To(HaveLen(1),

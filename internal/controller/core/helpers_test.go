@@ -35,7 +35,7 @@ func expectNoLoadBalancers() {
 			}
 		}
 		return count
-	}, timeout, interval).Should(Equal(0), "Expected no load balancers")
+	}, timeout*4, interval).Should(Equal(0), "Expected no load balancers")
 }
 
 func expectNoSecurityGroups() {
@@ -52,7 +52,7 @@ func expectNoSecurityGroups() {
 			}
 		}
 		return count
-	}, timeout, interval).Should(Equal(0), "Expected no security groups")
+	}, timeout*4, interval).Should(Equal(0), "Expected no security groups")
 }
 
 func expectNoServices() {

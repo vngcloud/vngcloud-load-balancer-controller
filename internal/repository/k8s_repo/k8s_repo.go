@@ -34,6 +34,8 @@ type k8sRepository struct {
 	client client.Client
 }
 
+func (r *k8sRepository) Client() client.Client { return r.client }
+
 func (r *k8sRepository) GetService(ctx context.Context, n types.NamespacedName) (*corev1.Service, error) {
 	svc := &corev1.Service{}
 	err := r.client.Get(ctx, n, svc)

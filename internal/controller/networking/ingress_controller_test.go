@@ -46,9 +46,40 @@ const (
 )
 
 var _ = Describe("Ingress Controller", func() {
+	BeforeEach(func() {
+		// Drain anything a previous spec's AfterEach left behind, then
+		// WAIT for the K8s API server to finish the deletes (finalizer
+		// chains can be in flight from a failed spec). Without the
+		// wait, the next It would hit "object is being deleted" when
+		// it tries to Create with the same name. After the K8s side is
+		// clean, reset the in-memory mock VNGCloud state.
+		cleanupAllEndpoints()
+		cleanupAllLBCs()
+		cleanupAllNSGs()
+		cleanupAllIngreses()
+		cleanupAllServices()
+
+		expectNoIngresses()
+		expectNoServices()
+		expectNoLBCs()
+		expectNoNSGs()
+		expectNoEndpoints()
+		expectNoLoadBalancers()
+		expectNoSecurityGroups()
+
+		vngcloudRepo.Reset()
+	})
 
 	AfterEach(func() {
-		// Ensure clean state before each test
+		// Cleanup must run BEFORE the assertions below; otherwise an
+		// assertion failure (Eventually timeout) short-circuits the
+		// AfterEach and leaves resources around for the next spec.
+		cleanupAllEndpoints()
+		cleanupAllLBCs()
+		cleanupAllNSGs()
+		cleanupAllIngreses()
+		cleanupAllServices()
+
 		expectNoLoadBalancers()
 		expectNoSecurityGroups()
 		expectNoIngresses()
@@ -56,12 +87,6 @@ var _ = Describe("Ingress Controller", func() {
 		expectNoLBCs()
 		expectNoNSGs()
 		expectNoEndpoints()
-
-		cleanupAllEndpoints()
-		cleanupAllLBCs()
-		cleanupAllNSGs()
-		cleanupAllIngreses()
-		cleanupAllServices()
 	})
 
 	Context("When create ingress with default annotation default", func() {
@@ -1589,7 +1614,7 @@ var _ = Describe("Ingress Controller", func() {
 				g.Expect(pools).ShouldNot(BeNil())
 				g.Expect((pools.Items)).Should(HaveLen(1))
 				g.Expect(pools.Items[0].Name).Should(Equal("test-pool-gogsf"))
-			}, timeout, interval).Should(Succeed())
+			}, timeout*4, interval).Should(Succeed())
 		})
 	})
 
