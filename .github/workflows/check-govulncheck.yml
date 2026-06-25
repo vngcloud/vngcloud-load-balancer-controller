@@ -9,11 +9,18 @@ jobs:
     if: contains(github.event.head_commit.message, '[build]')
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Scan for Vulnerabilities in Code
-        # Pinned to master HEAD: latest v1.0.4 tag transitively pulls actions/checkout@v4.1.1
-        # and actions/setup-go@v5.0.0 (Node 20). master HEAD pins them to v6.0.2 / v6.2.0 (Node 24).
-        # Switch back to a tagged release once upstream cuts v1.0.5+.
-        uses: golang/govulncheck-action@31f7c5463448f83528bd771c2d978d940080c9fd # master @ 2026-02-26
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version-input: 1.25.10
-          go-package: ./...
+          go-version: 1.25.11
+          check-latest: true
+      - name: Scan for Vulnerabilities in Code
+        # NB: govulncheck is pinned to v1.3.0 (NOT @latest). v1.4.0 links
+        # golang.org/x/tools@v0.46.0, whose SSA call-graph builder panics on
+        # generic code under Go 1.25 ("ForEachElement called on type containing
+        # *types.TypeParam"), crashing the default -scan symbol mode. v1.3.0
+        # links x/tools@v0.44.0 and scans cleanly. The golang/govulncheck-action
+        # only installs @latest, so we invoke govulncheck directly instead.
+        # Revisit once upstream ships a fixed x/tools (then bump or drop the pin).
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+          govulncheck -C . -format text ./...

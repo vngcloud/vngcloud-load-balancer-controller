@@ -54,7 +54,8 @@ func (m *defaultFinalizerManager) AddFinalizers(ctx context.Context, obj client.
 func (m *defaultFinalizerManager) RemoveFinalizers(ctx context.Context, obj client.Object, finalizers ...string) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		if err := m.k8sClient.Get(ctx, NamespacedName(obj), obj); err != nil {
-			return err
+			// Object already gone — finalizer removal is moot, goal is met.
+			return client.IgnoreNotFound(err)
 		}
 
 		oldObj := obj.DeepCopyObject().(client.Object)
@@ -70,7 +71,9 @@ func (m *defaultFinalizerManager) RemoveFinalizers(ctx context.Context, obj clie
 		}
 		err := m.k8sClient.Patch(ctx, obj, client.MergeFromWithOptions(oldObj, client.MergeFromWithOptimisticLock{}))
 		if err != nil {
-			return err
+			// Object deleted between Get and Patch — goal is already met.
+			// Conflicts are retried by RetryOnConflict (re-Gets a fresh copy).
+			return client.IgnoreNotFound(err)
 		}
 		// return nil
 

@@ -44,3 +44,10 @@ const (
 
 	ConfigClusterIdAnnotation = "fleet.vngcloud.vn/config-cluster-id"
 )
+
+const (
+	GatewayClassControllerNameALB = "gateway.vks.vngcloud.vn/alb"
+	GatewayClassControllerNameNLB = "gateway.vks.vngcloud.vn/nlb"
+	GatewayClassNameALB           = "vngcloud-alb"
+	GatewayClassNameNLB           = "vngcloud-nlb"
+)

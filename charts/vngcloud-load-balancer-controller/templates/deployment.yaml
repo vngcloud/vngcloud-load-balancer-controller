@@ -22,6 +22,8 @@ spec:
       affinity: {{- toYaml .Values.manager.affinity | nindent 8 }}
       containers:
       - args: {{- toYaml .Values.manager.manager.args | nindent 8 }}
+        - --disable-alb-gateway-controller={{ not .Values.gatewayApi.alb.enabled }}
+        - --disable-nlb-gateway-controller={{ not .Values.gatewayApi.nlb.enabled }}
         command:
         - /manager
         env:

@@ -79,6 +79,9 @@ nav:
     - Upgrade: deploy/upgrade.md
   - Guide:
     - Ingress: guide/ingress.md
+    - Gateway API (ALB): guide/gateway-api.md
+    - Gateway API (NLB / L4): guide/gateway-nlb.md
+    - Real client IP (NLB + HAProxy): guide/gateway-nlb-haproxy-realip.md
     - Service (L4): guide/service.md
     - LoadBalancerConfig CRD: guide/load-balancer-config.md
     - NodeSecurityGroup CRD: guide/node-security-group.md

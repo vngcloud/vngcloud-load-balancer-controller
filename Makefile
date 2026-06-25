@@ -54,6 +54,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 .PHONY: sync-embedded-crds
 sync-embedded-crds: ## Copy generated vks.vngcloud.vn CRDs into the binary-embedded location (pkg/k8s/apis/.../crds).
 	cp config/crd/bases/vks.vngcloud.vn_*.yaml pkg/k8s/apis/vks.vngcloud.vn/crds/
+	cp config/crd/bases/gateway.vks.vngcloud.vn_*.yaml pkg/k8s/apis/vks.vngcloud.vn/crds/ 2>/dev/null || true
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -75,6 +76,12 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
 test-e2e:
 	go test ./test/e2e/ -v -ginkgo.v
+
+.PHONY: test-e2e-gateway  # Run Gateway-API e2e against a REAL vngcloud cluster (opt-in).
+# Requires: a real cluster reachable via KUBECONFIG, with the controller already
+# deployed and --enable-gateway-api-alb set. Provisions and tears down real ALBs.
+test-e2e-gateway:
+	RUN_GATEWAY_E2E=true go test ./test/e2e/gateway/ -v -ginkgo.v -timeout 20m
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
@@ -112,7 +119,8 @@ build-pro:
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go --log-level=debug \
-	--metrics-bind-address=:8080 --metrics-secure=false
+	--metrics-bind-address=:8080 --metrics-secure=false \
+	--disable-alb-gateway-controller=false --disable-nlb-gateway-controller=false
 # 	--disable-service-controller \
 # 	--disable-load-balancer-config-controller \
 # 	--disable-ingress-controller \

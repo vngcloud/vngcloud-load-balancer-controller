@@ -109,6 +109,8 @@ Key values:
 | `manager.manager.image.repository` | Controller image repository | `vcr.vngcloud.vn/81-vks-public/vngcloud-load-balancer-controller` |
 | `manager.manager.image.tag` | Controller image tag | chart's appVersion |
 | `manager.replicaCount` | Number of controller replicas | `1` |
+| `gatewayApi.alb.enabled` | Enable the [Gateway API (ALB)](../guide/gateway-api.md) controller and install the `vngcloud-alb` GatewayClass. Requires the Gateway-API CRDs (Gateway/HTTPRoute) to be installed first | `false` |
+| `gatewayApi.nlb.enabled` | Enable the [Gateway API (NLB / L4)](../guide/gateway-nlb.md) controller and install the `vngcloud-nlb` GatewayClass. Requires the Gateway-API **experimental-channel** CRDs (TCPRoute/UDPRoute) | `false` |
 
 ## CLI Flags
 
@@ -130,6 +132,8 @@ The controller binary supports the following flags:
 | `--disable-node-security-group-controller` | `false` | Disable the NodeSecurityGroup reconciler |
 | `--disable-vngcloud-global-load-balancer-controller` | `false` | Disable the VngcloudGlobalLoadBalancer reconciler |
 | `--disable-service-glb-controller` | `false` | Disable the Service GLB reconciler |
+| `--disable-alb-gateway-controller` | `true` | Disable the Gateway API (ALB) reconcilers. Disabled by default; needs the Gateway-API CRDs (Gateway/HTTPRoute) |
+| `--disable-nlb-gateway-controller` | `true` | Disable the Gateway API (NLB / L4) reconcilers. Disabled by default; needs the experimental TCPRoute/UDPRoute CRDs |
 
 ## Environment Variables
 

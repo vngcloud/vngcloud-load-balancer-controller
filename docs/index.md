@@ -8,6 +8,7 @@ It watches Kubernetes `Service` (type `LoadBalancer`) and `Ingress` resources an
 
 - **L4 Load Balancing** — Automatically provisions Network Load Balancers for `Service` resources of type `LoadBalancer`
 - **L7 Load Balancing** — Manages Application Load Balancers via Kubernetes `Ingress` resources
+- **Gateway API** — Provisions Application Load Balancers from `Gateway`/`HTTPRoute` resources (and Network Load Balancers from `TCPRoute`/`UDPRoute`), customised via GEP-713 policy CRDs (`VKSGatewayPolicy`, `VKSBackendPolicy`, `VKSHealthCheckPolicy`, `VKSRoutePolicy`)
 - **LoadBalancerConfig CRD** — Fine-grained control over load balancer configuration (listeners, pools, policies, certificates)
 - **NodeSecurityGroup CRD** — Manages security group rules for cluster nodes
 - **Global Load Balancer** — Multi-region traffic distribution via the `VngcloudGlobalLoadBalancer` CRD

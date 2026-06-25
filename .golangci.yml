@@ -33,6 +33,9 @@ linters:
         linters:
           - dupl
           - lll
+      - path: "_test\\.go"
+        linters:
+          - unparam
   settings:
     revive:
       rules:

@@ -26,6 +26,62 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/errs"
 )
 
+// validateVngcloudName mirrors the real vngcloud API validation observed on a
+// live cluster: identifier-style fields (listener name, pool name, member name,
+// etc.) must be 5–50 chars and contain only [a-zA-Z0-9_.-]. The matching real
+// error string is reproduced here so use-case unit tests catch regressions
+// before they hit a real load balancer warm-up cycle.
+//
+// kind is just for the error message ("listenerName", "members[i].name", ...).
+// validateVngcloudName mirrors the real vngcloud API validation. The error
+// strings end with a period because that's how the upstream service returns
+// them, and unit tests substring-match the verbatim message.
+//
+//nolint:staticcheck // ST1005: errors must mirror upstream wording exactly
+func validateVngcloudName(kind, value string) error {
+	const minLen = 5
+	const maxLen = 50
+	const msg = "%s: Only letters (a-z, A-Z, 0-9, '_', '-', '.') are allowed and must be between 5 and 50 characters."
+	if len(value) < minLen || len(value) > maxLen {
+		return fmt.Errorf(msg, kind)
+	}
+	for _, r := range value {
+		switch {
+		case r >= 'a' && r <= 'z',
+			r >= 'A' && r <= 'Z',
+			r >= '0' && r <= '9',
+			r == '_', r == '-', r == '.':
+			continue
+		default:
+			return fmt.Errorf(msg, kind)
+		}
+	}
+	return nil
+}
+
+// validateHealthCheckProtocolFields enforces vngcloud's cross-field rule:
+// when healthCheckProtocol is TCP or PING-UDP, none of the HTTP-specific fields
+// (healthCheckPath, healthCheckMethod, successCode, domainName, httpVersion)
+// may be set. Discovered live by an UpdatePool roundtrip after a TGC swap.
+func validateHealthCheckProtocolFields(hm *loadbalancerv2.HealthMonitor) error {
+	if hm == nil {
+		return nil
+	}
+	proto := string(hm.HealthCheckProtocol)
+	if proto != "TCP" && proto != "PING-UDP" {
+		return nil
+	}
+	httpOnlySet := (hm.HealthCheckPath != nil && *hm.HealthCheckPath != "") ||
+		(hm.HealthCheckMethod != nil && *hm.HealthCheckMethod != "") ||
+		(hm.SuccessCode != nil && *hm.SuccessCode != "") ||
+		(hm.DomainName != nil && *hm.DomainName != "") ||
+		(hm.HttpVersion != nil && *hm.HttpVersion != "")
+	if httpOnlySet {
+		return errors.New("If healthCheckProtocol field is TCP or PING-UDP, following fields cannot be specified: healthCheckPath, healthCheckMethod, successCode, domainName, httpVersion")
+	}
+	return nil
+}
+
 func randID() string {
 	number := randRange(1000000, 3999999)
 	return fmt.Sprint(number)
@@ -921,6 +977,10 @@ func (m *MockProvider) CreateListener(ctx context.Context, lbID string, opt load
 	logger := contexts.NewContext(ctx).Log()
 	logger.Infof("%s Request create listener of load balancer %s", domain.RequestIcon, lbID)
 	listener := opt.ToRequestBody().(*loadbalancerv2.CreateListenerRequest)
+	if err := validateVngcloudName("listenerName", listener.ListenerName); err != nil {
+		logger.Errorf("[ERROR] - CreateListener: %v", err)
+		return nil, err
+	}
 	newListener := &wrapListener{
 		lbID: lbID,
 		Listener: &entityv2.Listener{
@@ -1316,6 +1376,29 @@ func (m *MockProvider) CreatePool(ctx context.Context, lbID string, opt loadbala
 		member        []*loadbalancerv2.Member
 	)
 	pool = opt.ToRequestBody().(*loadbalancerv2.CreatePoolRequest)
+	if err := validateVngcloudName("poolName", pool.PoolName); err != nil {
+		logger.Errorf("[ERROR] - CreatePool: %v", err)
+		return nil, err
+	}
+	for i, mem := range pool.Members {
+		mr := mem.ToRequestBody().(*loadbalancerv2.Member)
+		if err := validateVngcloudName(fmt.Sprintf("members[%d].name", i), mr.Name); err != nil {
+			logger.Errorf("[ERROR] - CreatePool: %v", err)
+			return nil, err
+		}
+		if mr.MonitorPort == 0 {
+			err := fmt.Errorf("members[%d].monitorPort: Required value", i)
+			logger.Errorf("[ERROR] - CreatePool: %v", err)
+			return nil, err
+		}
+	}
+	if pool.HealthMonitor != nil {
+		hm := pool.HealthMonitor.ToRequestBody().(*loadbalancerv2.HealthMonitor)
+		if err := validateHealthCheckProtocolFields(hm); err != nil {
+			logger.Errorf("[ERROR] - CreatePool: %v", err)
+			return nil, err
+		}
+	}
 	defaultPoolID := "pool-" + randID()
 
 	lb, _ := m.GetLoadBalancerByID(ctx, lbID)
@@ -1521,6 +1604,13 @@ func (m *MockProvider) UpdatePool(ctx context.Context, lbID, poolID string, opt 
 	logger := contexts.NewContext(ctx).Log()
 	logger.Infof("%s Request update pool %s of load balancer %s", domain.RequestIcon, poolID, lbID)
 	updateOpt := opt.ToRequestBody().(*loadbalancerv2.UpdatePoolRequest)
+	if updateOpt.HealthMonitor != nil {
+		hm := updateOpt.HealthMonitor.ToRequestBody().(*loadbalancerv2.HealthMonitor)
+		if err := validateHealthCheckProtocolFields(hm); err != nil {
+			logger.Errorf("[ERROR] - UpdatePool: %v", err)
+			return err
+		}
+	}
 	var pool *wrapPool
 	for _, p := range m.pools {
 		if p.lbID == lbID && p.GetId() == poolID {

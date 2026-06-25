@@ -43,8 +43,13 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	gwv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/gateway/v1alpha1"
 	vksvngcloudvnv1alpha1 "github.com/vngcloud/vngcloud-load-balancer-controller/api/v1alpha1"
 	corecontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/core"
+	gatewayalbcontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/alb"
+	gatewaynlbcontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/nlb"
+	gatewaypolicies "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/policies"
+	gatewayshared "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/gateway/shared"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/glbc_controller"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/lbc_controller"
 	networkingcontroller "github.com/vngcloud/vngcloud-load-balancer-controller/internal/controller/networking"
@@ -54,6 +59,8 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/domain"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/k8s_repo"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/repository/vngcloud_repo"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/alb_gateway_uc"
+	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/gateway_uc/nlb_gateway_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/glbc_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/ingress_uc"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/internal/usecase/lbc_uc"
@@ -78,6 +85,9 @@ import (
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/utils"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/version"
 	"github.com/vngcloud/vngcloud-load-balancer-controller/pkg/vglb"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -90,6 +100,14 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(vksvngcloudvnv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(gwv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(gwv1.Install(scheme))
+	utilruntime.Must(gwv1beta1.Install(scheme))
+	// v1alpha2 carries the experimental L4 routes (TCPRoute/UDPRoute). Teaching
+	// the scheme to decode them is harmless when the CRDs aren't installed; the
+	// NLB controller's route watches (which require the CRDs) are gated behind
+	// --disable-nlb-gateway-controller (default disabled).
+	utilruntime.Must(gwv1a2.Install(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -107,6 +125,8 @@ func main() { //nolint:gocyclo
 	var disableNodeSecurityGroupController bool
 	var disableVngcloudGlobalLoadBalancerController bool
 	var disableServiceGLBController bool
+	var disableALBGatewayController bool
+	var disableNLBGatewayController bool
 	var syncPeriod time.Duration
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
@@ -135,6 +155,14 @@ func main() { //nolint:gocyclo
 		"If set, the VngcloudGlobalLoadBalancer controller will be disabled")
 	flag.BoolVar(&disableServiceGLBController, "disable-service-glb-controller", false,
 		"If set, the ServiceGLB controller will be disabled")
+	flag.BoolVar(&disableALBGatewayController, "disable-alb-gateway-controller", true,
+		"If set, the Gateway-API ALB controller (vngcloud-alb GatewayClass) is disabled. "+
+			"DISABLED by default: the Gateway-API CRDs (GatewayClass/Gateway/HTTPRoute) must be "+
+			"installed in the cluster before enabling. In Helm set gatewayApi.alb.enabled=true to enable.")
+	flag.BoolVar(&disableNLBGatewayController, "disable-nlb-gateway-controller", true,
+		"If set, the Gateway-API NLB controller (vngcloud-nlb GatewayClass, L4) is disabled. "+
+			"DISABLED by default: TCPRoute/UDPRoute are Gateway-API experimental-channel CRDs and "+
+			"must be installed before enabling. In Helm set gatewayApi.nlb.enabled=true to enable.")
 	flag.DurationVar(&syncPeriod, "sync-period", 5*time.Minute,
 		"The minimum frequency at which watched resources are reconciled. "+
 			"A lower period will correct entropy more quickly, "+
@@ -443,6 +471,79 @@ func main() { //nolint:gocyclo
 		)
 		if err := serviceGLBReconciler.SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ServiceGLB")
+			os.Exit(1)
+		}
+	}
+
+	if !disableALBGatewayController {
+		albGatewayUseCase := alb_gateway_uc.NewALBGatewayUseCase(
+			conf.Cluster.ClusterID,
+			k8sRepo,
+			vngcloudRepo,
+			endpointResolver,
+			mgr.GetClient(),
+			finalizerManager,
+		)
+		albGatewayReconciler := gatewayalbcontroller.NewGatewayReconciler(
+			mgr.GetClient(),
+			mgr.GetScheme(),
+			albGatewayUseCase,
+			conf.MaxConcurrentReconciles,
+		)
+		if err := albGatewayReconciler.SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ALBGateway")
+			os.Exit(1)
+		}
+
+		gcReconciler := gatewayalbcontroller.NewGatewayClassReconciler(mgr.GetClient(), mgr.GetScheme())
+		if err := gcReconciler.SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ALBGatewayClass")
+			os.Exit(1)
+		}
+
+		// Policy validators write GEP-713 status (Accepted/Conflicted/
+		// TargetNotFound) on the four VKS policy CRDs. Status-only; never touch
+		// the LoadBalancer.
+		for _, pr := range gatewaypolicies.AllReconcilers(mgr.GetClient()) {
+			if err := pr.SetupWithManager(ctx, mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "GatewayPolicyValidator")
+				os.Exit(1)
+			}
+		}
+
+		// Register the field indexes used by the gateway reconciler's watches
+		// (HTTPRoute → parent Gateway, etc.).
+		if err := gatewayshared.RegisterIndexes(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to register gateway field indexes")
+			os.Exit(1)
+		}
+	}
+
+	if !disableNLBGatewayController {
+		nlbGatewayUseCase := nlb_gateway_uc.NewNLBGatewayUseCase(
+			conf.Cluster.ClusterID,
+			k8sRepo,
+			vngcloudRepo,
+			endpointResolver,
+			mgr.GetClient(),
+			finalizerManager,
+		)
+		nlbGatewayReconciler := gatewaynlbcontroller.NewGatewayReconciler(
+			mgr.GetClient(),
+			mgr.GetScheme(),
+			nlbGatewayUseCase,
+			conf.MaxConcurrentReconciles,
+		)
+		// SetupWithManager registers the L4 (TCPRoute/UDPRoute) field indexes
+		// internally — those CRDs are an experimental-channel prerequisite.
+		if err := nlbGatewayReconciler.SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "NLBGateway")
+			os.Exit(1)
+		}
+
+		nlbGCReconciler := gatewaynlbcontroller.NewGatewayClassReconciler(mgr.GetClient(), mgr.GetScheme())
+		if err := nlbGCReconciler.SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "NLBGatewayClass")
 			os.Exit(1)
 		}
 	}

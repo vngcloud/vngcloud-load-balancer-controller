@@ -7,6 +7,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - namespaces
   - node
   verbs:
   - get
@@ -90,6 +91,67 @@ rules:
   - endpoints/status
   - nodes/status
   - services/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses
+  - httproutes
+  - referencegrants
+  - tcproutes
+  - udproutes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses/status
+  - gateways/status
+  - httproutes/status
+  - tcproutes/status
+  - udproutes/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gateway.vks.vngcloud.vn
+  resources:
+  - vksbackendpolicies
+  - vksgatewaypolicies
+  - vkshealthcheckpolicies
+  - vksroutepolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.vks.vngcloud.vn
+  resources:
+  - vksbackendpolicies/status
+  - vksgatewaypolicies/status
+  - vkshealthcheckpolicies/status
+  - vksroutepolicies/status
   verbs:
   - get
   - patch

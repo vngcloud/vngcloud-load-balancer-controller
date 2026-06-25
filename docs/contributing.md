@@ -6,7 +6,7 @@ We welcome contributions to the VNGCloud Load Balancer Controller!
 
 ### Prerequisites
 
-- Go 1.25.10+
+- Go 1.25.11+
 - Docker
 - `kubectl` and access to a Kubernetes cluster
 - `make`
@@ -49,6 +49,12 @@ For focused integration tests:
 ```bash
 go clean -testcache && go test -v ./internal/controller/networking/... \
   -ginkgo.focus="When node status changes from not ready to ready"
+```
+
+The Gateway API e2e suite provisions **real** VNGCloud ALBs and is opt-in; it needs a real cluster with the controller running:
+
+```bash
+RUN_GATEWAY_E2E=true KUBECONFIG=/path/to/cluster.yaml go test ./test/e2e/gateway/ -v
 ```
 
 ## Code Generation

@@ -18,6 +18,7 @@ Application Load Balancers automatically.
 
 - **L4 Load Balancing** — Network Load Balancers for `Service` resources of type `LoadBalancer`.
 - **L7 Load Balancing** — Application Load Balancers driven by Kubernetes `Ingress` resources.
+- **Gateway API** — Application Load Balancers driven by `Gateway`/`HTTPRoute`, and Network Load Balancers driven by `TCPRoute`/`UDPRoute`, customised via GEP-713 policy CRDs.
 - **`LoadBalancerConfig` CRD** — Fine-grained control over listeners, pools, policies, and TLS certificates.
 - **`NodeSecurityGroup` CRD** — Declarative management of node security-group rules.
 - **`GlobalLoadBalancerConfig` / `VngcloudGlobalLoadBalancer` CRDs** — Multi-region traffic distribution.
@@ -143,7 +144,7 @@ spec:
 
 More guides:
 
-- [Service (L4)](docs/guide/service.md) · [Ingress (L7)](docs/guide/ingress.md)
+- [Service (L4)](docs/guide/service.md) · [Ingress (L7)](docs/guide/ingress.md) · [Gateway API (ALB)](docs/guide/gateway-api.md) · [Gateway API (NLB)](docs/guide/gateway-nlb.md)
 - [`LoadBalancerConfig` CRD](docs/guide/load-balancer-config.md)
 - [`NodeSecurityGroup` CRD](docs/guide/node-security-group.md)
 - [Global Load Balancer](docs/guide/global-load-balancer.md)
@@ -157,7 +158,9 @@ sources live under [`docs/`](docs/).
 
 ## Roadmap
 
-- [ ] Gateway API support (design phase)
+- [x] Gateway API support — Phase 1: ALB (`Gateway` + `HTTPRoute` + policy CRDs)
+- [x] Gateway API Phase 2: NLB (`TCPRoute`/`UDPRoute`)
+- [ ] Gateway API Phase 3+: `TLSRoute`, `GRPCRoute`, conformance
 - [ ] End-to-end test suite
 - [ ] Validating / mutating webhooks
 - [ ] Out-of-band drift reconciliation (detect external load-balancer changes)

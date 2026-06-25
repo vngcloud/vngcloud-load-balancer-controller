@@ -32,6 +32,18 @@ var (
 
 	//go:embed crds/vks.vngcloud.vn_globalloadbalancerconfigs.yaml
 	globalloadbalancerconfigsCRDBytes []byte
+
+	//go:embed crds/gateway.vks.vngcloud.vn_vksgatewaypolicies.yaml
+	vksgatewaypoliciesCRDBytes []byte
+
+	//go:embed crds/gateway.vks.vngcloud.vn_vksbackendpolicies.yaml
+	vksbackendpoliciesCRDBytes []byte
+
+	//go:embed crds/gateway.vks.vngcloud.vn_vkshealthcheckpolicies.yaml
+	vkshealthcheckpoliciesCRDBytes []byte
+
+	//go:embed crds/gateway.vks.vngcloud.vn_vksroutepolicies.yaml
+	vksroutepoliciesCRDBytes []byte
 )
 
 // CRDDefinition holds the name and embedded bytes of a CRD
@@ -47,6 +59,10 @@ func GetAllCRDs() []CRDDefinition {
 		{Name: "nodesecuritygroups.vks.vngcloud.vn", Bytes: nodesecuritygroupsCRDBytes},
 		{Name: "vngcloudgloballoadbalancers.vks.vngcloud.vn", Bytes: vngcloudgloballoadbalancersCRDBytes},
 		{Name: "globalloadbalancerconfigs.vks.vngcloud.vn", Bytes: globalloadbalancerconfigsCRDBytes},
+		{Name: "vksgatewaypolicies.gateway.vks.vngcloud.vn", Bytes: vksgatewaypoliciesCRDBytes},
+		{Name: "vksbackendpolicies.gateway.vks.vngcloud.vn", Bytes: vksbackendpoliciesCRDBytes},
+		{Name: "vkshealthcheckpolicies.gateway.vks.vngcloud.vn", Bytes: vkshealthcheckpoliciesCRDBytes},
+		{Name: "vksroutepolicies.gateway.vks.vngcloud.vn", Bytes: vksroutepoliciesCRDBytes},
 	}
 }
 

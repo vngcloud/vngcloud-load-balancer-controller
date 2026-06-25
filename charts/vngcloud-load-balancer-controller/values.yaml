@@ -1,4 +1,20 @@
 kubernetesClusterDomain: cluster.local
+# gatewayApi toggles Kubernetes Gateway-API support. DISABLED by default so the
+# chart installs cleanly on clusters that have not installed the Gateway-API CRDs
+# (GatewayClass/Gateway/HTTPRoute). Enable a class only after installing those CRDs.
+gatewayApi:
+  alb:
+    # When true, the chart installs the vngcloud-alb GatewayClass and the
+    # controller reconciles it (passes --disable-alb-gateway-controller=false).
+    # Requires the Gateway-API CRDs to be installed in the cluster first.
+    enabled: false
+  nlb:
+    # Gateway-API NLB (L4) support — Phase 2. When true, the chart installs the
+    # vngcloud-nlb GatewayClass and the controller reconciles it (passes
+    # --disable-nlb-gateway-controller=false). In addition to the standard
+    # Gateway-API CRDs, this reconciles TCPRoute/UDPRoute, which are Gateway-API
+    # *experimental-channel* CRDs that must be installed in the cluster first.
+    enabled: false
 manager:
   manager:
     args:

@@ -19,6 +19,24 @@ func (t *defaultModelDeployTask) deployPolicies(ctx context.Context, lbId, liste
 		return nil, err
 	}
 
+	// Drop orphans (cloud policies whose name isn't in the spec) before
+	// creating new ones. Without this we hit POLICY_PER_LB quota on any
+	// reconcile where a policy was renamed in the spec — the new name
+	// doesn't match a cloud entry, so deployPolicy issues CreatePolicy,
+	// the LB rejects it, the deploy errors out, and the existing
+	// status-driven garbage collector in delete_policy.go never gets a
+	// chance to run. Free quota first, then add.
+	if err := t.deleteOrphanPoliciesByName(ctx, lbId, listenerId, policiesSpec, currentPolicies); err != nil {
+		return nil, err
+	}
+	// Re-list so subsequent name lookups see the deletions; otherwise an
+	// orphan we just deleted could still be matched by a fresh deployPolicy
+	// call as if it existed.
+	currentPolicies, err = t.vngcloudRepo.ListPolicyOfListener(ctx, lbId, listenerId)
+	if err != nil {
+		return nil, err
+	}
+
 	createdPolicies := make([]v1alpha1.CreatedPolicy, 0, len(policiesSpec))
 	for _, policySpec := range policiesSpec {
 		createdPolicy, err := t.deployPolicy(ctx, lbId, listenerId, listenerPort, policySpec, newCreatedPools, currentPolicies)
@@ -28,6 +46,45 @@ func (t *defaultModelDeployTask) deployPolicies(ctx context.Context, lbId, liste
 		createdPolicies = append(createdPolicies, *createdPolicy)
 	}
 	return createdPolicies, nil
+}
+
+// deleteOrphanPoliciesByName removes any cloud policy whose name isn't
+// present in policiesSpec. We are the sole owner of every policy on this
+// listener (the LBC is fully driven by Spec), so anything not in spec is
+// either an old name for a policy that's been renamed or a leftover from
+// a previous reconcile — both safe to delete.
+//
+// This complements (does NOT replace) deployDeleteRedundantPolicies in
+// delete_policy.go. The status-driven GC there still cleans up policy
+// IDs we recorded but no longer want; this name-driven sweep additionally
+// covers cloud entries we lost track of (e.g. status not yet written
+// before a previous failure, or a rename across controller versions).
+func (t *defaultModelDeployTask) deleteOrphanPoliciesByName(ctx context.Context, lbId, listenerId string, policiesSpec []v1alpha1.Policy, currentPolicies *entityv2.ListPolicies) error {
+	if t.lbConfig.Spec.Type == loadbalancerv2.LoadBalancerTypeLayer4 {
+		return nil
+	}
+	if currentPolicies == nil || len(currentPolicies.Items) == 0 {
+		return nil
+	}
+	wanted := make(map[string]struct{}, len(policiesSpec))
+	for _, p := range policiesSpec {
+		wanted[p.Name] = struct{}{}
+	}
+	for _, p := range currentPolicies.Items {
+		if _, keep := wanted[p.Name]; keep {
+			continue
+		}
+		t.logger.Infof("Deleting orphan policy %s (id=%s) on listener %s — not in spec",
+			p.Name, p.UUID, listenerId)
+		if err := t.vngcloudRepo.DeletePolicy(ctx, lbId, listenerId, p.UUID); err != nil {
+			return err
+		}
+		if _, err := t.vngcloudRepo.WaitForLBActive(ctx, lbId); err != nil {
+			t.logger.Error("Failed to wait for loadbalancer active: ", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *defaultModelDeployTask) deployPolicy(ctx context.Context, lbId, listenerId string, listenerPort int, policySpec v1alpha1.Policy, newCreatedPools []v1alpha1.CreatedPool, currentPolicies *entityv2.ListPolicies) (*v1alpha1.CreatedPolicy, error) {

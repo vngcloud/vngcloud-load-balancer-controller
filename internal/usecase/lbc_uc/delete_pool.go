@@ -136,7 +136,7 @@ func (t *defaultModelDeployTask) canDeleteWholePool(ctx context.Context, lbId, p
 	if !t.comparePoolMembers(ctx, updateMembers, convertMemberList(currentListMembers)) {
 		convertMembers := make([]loadbalancerv2.IMemberRequest, 0)
 		for _, member := range updateMembers {
-			convertMembers = append(convertMembers, loadbalancerv2.NewMember(member.Name, member.IP, member.Port, member.MonitorPort))
+			convertMembers = append(convertMembers, buildMemberRequest(member))
 		}
 		updateMemberOptions := loadbalancerv2.NewUpdatePoolMembersRequest(lbId, poolId).WithMembers(convertMembers...)
 		return false, updateMemberOptions
