@@ -120,7 +120,7 @@ func (t *defaultModelDeployTask) deployPool(ctx context.Context, lbId string, po
 	if !t.comparePoolMembers(ctx, updateMembers, convertMemberList(currentPoolMembers)) {
 		convertMembers := make([]loadbalancerv2.IMemberRequest, 0)
 		for _, member := range updateMembers {
-			convertMembers = append(convertMembers, loadbalancerv2.NewMember(member.Name, member.IP, member.Port, member.MonitorPort))
+			convertMembers = append(convertMembers, buildMemberRequest(member))
 		}
 		updateMemberOptions := loadbalancerv2.NewUpdatePoolMembersRequest(lbId, currentPool.UUID).WithMembers(convertMembers...)
 
@@ -148,13 +148,7 @@ func (t *defaultModelDeployTask) deployPool(ctx context.Context, lbId string, po
 func (t *defaultModelDeployTask) buildCreatePoolRequest(_ context.Context, lbId string, pool *v1alpha1.Pool) loadbalancerv2.ICreatePoolRequest {
 	convertMembers := make([]loadbalancerv2.IMemberRequest, 0)
 	for _, member := range pool.Members {
-		convertMembers = append(convertMembers,
-			loadbalancerv2.NewMember(
-				member.Name,
-				member.IP,
-				member.Port,
-				member.MonitorPort,
-			))
+		convertMembers = append(convertMembers, buildMemberRequest(member))
 	}
 	healthMonitor := loadbalancerv2.HealthMonitor{
 		HealthCheckProtocol: pool.HealthMonitor.Protocol,
@@ -359,20 +353,22 @@ func (t *defaultModelDeployTask) buildPoolUpdateRequest(_ context.Context, lbID 
 }
 
 // MergePoolMembers merges the pool members
-// - keep current member if it is in spec or not created by us
+// - keep current member only if it is not in spec and not created by us
+// - prefer the spec member (with its desired weight) when its identity matches a current member
 func (t *defaultModelDeployTask) mergePoolMembers(_ context.Context, createdMembers, currentMembers, poolMemberSpec []v1alpha1.PoolMember) []v1alpha1.PoolMember {
 	mergedPoolMembers := make([]v1alpha1.PoolMember, 0)
 
-	// keep current member if it is in spec or not created by us
+	// keep current member only if it is not managed by us (not in spec and not created by us).
+	// members that are in spec are added below from poolMemberSpec so the desired weight wins.
 	for _, member := range currentMembers {
-		if t.checkIfPoolMemberExist(poolMemberSpec, &member) || !t.checkIfPoolMemberExist(createdMembers, &member) {
+		if !t.checkIfPoolMemberExistByAddress(poolMemberSpec, &member) && !t.checkIfPoolMemberExistByAddress(createdMembers, &member) {
 			mergedPoolMembers = append(mergedPoolMembers, member)
 		}
 	}
 
-	// add new members from spec
+	// add members from spec (carrying their desired weight)
 	for _, member := range poolMemberSpec {
-		if !t.checkIfPoolMemberExist(mergedPoolMembers, &member) {
+		if !t.checkIfPoolMemberExistByAddress(mergedPoolMembers, &member) {
 			mergedPoolMembers = append(mergedPoolMembers, member)
 		}
 	}
@@ -394,19 +390,69 @@ func (t *defaultModelDeployTask) comparePoolMembers(_ context.Context, poolMembe
 	return true
 }
 
-// checkIfPoolMemberExist checks if the pool member exists in the pool members.
-func (t *defaultModelDeployTask) checkIfPoolMemberExist(list []v1alpha1.PoolMember, member *v1alpha1.PoolMember) bool {
+// checkIfPoolMemberExistByAddress checks if a member with the same identity
+// (IP+Port+MonitorPort) exists in the list, ignoring weight. Used for
+// de-duplication in mergePoolMembers and for "can we cover this member" checks.
+func (t *defaultModelDeployTask) checkIfPoolMemberExistByAddress(list []v1alpha1.PoolMember, member *v1alpha1.PoolMember) bool {
 	for _, r := range list {
 		if r.IP == member.IP &&
 			r.Port == member.Port &&
-			// r.Backup == member.Backup &&
-			// r.Name == member.Name &&
-			// r.Weight == member.Weight &&
 			r.MonitorPort == member.MonitorPort {
 			return true
 		}
 	}
 	return false
+}
+
+// checkIfPoolMemberExist checks if the pool member exists in the pool members
+// with the same identity AND the same effective weight. Weight must be part of
+// equality so that a weight change (e.g. 80 -> 20) is detected and pushed to the
+// load balancer. An unset (nil) weight is treated as the default weight, matching
+// what buildMemberRequest sends to the API; this keeps the comparison stable and
+// prevents a reconcile loop for members whose weight was never specified.
+func (t *defaultModelDeployTask) checkIfPoolMemberExist(list []v1alpha1.PoolMember, member *v1alpha1.PoolMember) bool {
+	for _, r := range list {
+		if r.IP == member.IP &&
+			r.Port == member.Port &&
+			r.MonitorPort == member.MonitorPort &&
+			effectiveWeight(r.Weight) == effectiveWeight(member.Weight) {
+			return true
+		}
+	}
+	return false
+}
+
+// defaultMemberWeight is the weight applied when a member does not specify one.
+// It mirrors the SDK default used by buildMemberRequest.
+const defaultMemberWeight = 1
+
+// effectiveWeight returns the weight a member will be deployed with: its explicit
+// value, or the default when unset. A non-positive weight is treated as unset,
+// since valid load balancer weights are >= 1.
+func effectiveWeight(w *int) int {
+	if w == nil || *w <= 0 {
+		return defaultMemberWeight
+	}
+	return *w
+}
+
+// buildMemberRequest builds an SDK member request carrying the member's weight.
+// The SDK's NewMember constructor hardcodes weight to 1 and exposes no setter, so
+// the request struct is built directly. Weight defaults to 1 when unset.
+func buildMemberRequest(member v1alpha1.PoolMember) loadbalancerv2.IMemberRequest {
+	weight := effectiveWeight(member.Weight)
+	backup := false
+	if member.Backup != nil {
+		backup = *member.Backup
+	}
+	return &loadbalancerv2.Member{
+		Name:        member.Name,
+		IpAddress:   member.IP,
+		Port:        member.Port,
+		MonitorPort: member.MonitorPort,
+		Weight:      weight,
+		Backup:      backup,
+	}
 }
 
 func convertMemberList(members *entityv2.ListMembers) []v1alpha1.PoolMember {
